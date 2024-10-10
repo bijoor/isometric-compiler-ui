@@ -3,10 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "homepage": "https://bijoor.github.io/isometric-compiler-ui",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "build": "tsc && vite build",
+    "build:gh-pages": "tsc && vite build --mode production --base=/isometric-compiler-ui/",
+    "predeploy": "npm run build:gh-pages",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview"
   },
   "dependencies": {

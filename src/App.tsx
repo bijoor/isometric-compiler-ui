@@ -71,7 +71,7 @@ const App: React.FC = () => {
             front: [],
             side: [],
             attachmentPoints: [],
-            transform: ''
+            absolutePosition: { x: 0, y: 0 }
         };
         setDiagramComponents(prevComponents => [...prevComponents, newComponent]);
         setSelected3DShape(newId);
@@ -216,9 +216,13 @@ const App: React.FC = () => {
         document.body.appendChild(hiddenSvg);
 
         // Function to get bounding box of an SVG element
-        const getBoundingBox = (svgComponent) => {
+        const getBoundingBox = (element: SVGElement | null): DOMRect => {
+            if (!element) {
+                console.warn('Attempted to get bounding box of null element');
+                return new DOMRect();
+            }
             const tempContainer = document.createElementNS(svgNamespace, "g");
-            tempContainer.appendChild(svgComponent.cloneNode(true));
+            tempContainer.appendChild(element.cloneNode(true));
             hiddenSvg.appendChild(tempContainer);
             const bbox = tempContainer.getBBox();
             hiddenSvg.removeChild(tempContainer);
@@ -276,11 +280,11 @@ const App: React.FC = () => {
 
             // Attach 2D shapes to faces
             ['top', 'front', 'side'].forEach(face => {
-                const faceElement = shape3DElement.querySelector(`#${face}-face`);
-                if (faceElement) {
+                const faceElement = shape3DElement.querySelector<SVGElement>(`#${face}-face`);
+                if (faceElement instanceof SVGElement) {
                     const faceBBox = getBoundingBox(faceElement);
 
-                    component[face].forEach(shape2DName => {
+                    (component[face as keyof Pick<DiagramComponent, 'top' | 'front' | 'side'>] as string[]).forEach((shape2DName: string) => {
                         const shape2DElement = getSvgFromLibrary(shape2DName);
                         if (shape2DElement) {
                             shape2DElement.setAttribute("id", `${face}-${shape2DName}`);
@@ -307,6 +311,8 @@ const App: React.FC = () => {
                             shape3DElement.appendChild(shape2DElement);
                         }
                     });
+                } else {
+                    console.warn(`Face element for ${face} is not an SVGElement`);
                 }
             });
 
@@ -492,4 +498,5 @@ const App: React.FC = () => {
     );
 };
 
-export default App;                      
+export default App;            
+export type { DiagramComponent };          
