@@ -10,7 +10,7 @@
     "build": "tsc && vite build",
     "build:gh-pages": "tsc && vite build --mode production --base=/isometric-compiler-ui/",
     "predeploy": "npm run build:gh-pages",
-    "deploy": "gh-pages -d dist",
+    "deploy": "gh-pages -d dist -r git@github.com:bijoor/isometric-compiler-ui.git",
     "preview": "vite preview"
   },
   "dependencies": {
