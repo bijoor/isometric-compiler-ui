@@ -10,5 +10,5 @@ export default defineConfig(({ command, mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: mode === 'production' ? '/isometric-compiler-ui/' : '/',
+  base: '/isometric-compiler-ui/',
 }))
