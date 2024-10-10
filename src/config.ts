@@ -3,7 +3,7 @@
 const getServerUrl = () => {
     if (import.meta.env.MODE === 'production') {
         // For GitHub Pages (production) environment
-        return 'https://isometric-diagram-server-ff5b4054a66c.herokuapp.com/';
+        return 'https://isometric-diagram-server-ff5b4054a66c.herokuapp.com';
     } else if (import.meta.env.VITE_SERVER_URL) {
         // For local development with a custom server URL
         return import.meta.env.VITE_SERVER_URL;
