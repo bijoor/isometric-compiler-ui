@@ -6,7 +6,7 @@ import { config } from './config';
 interface Shape {
     name: string;
     type: string;
-    face?: string;
+    attach?: string;
     svgContent: string;
 }
 
@@ -25,10 +25,10 @@ interface DiagramComponent {
     position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left';
     relativeToId: string | null;
     top: string[];
-    front: string[];
-    side: string[];
+    left: string[];
+    right: string[];
     attachmentPoints: AttachmentPoint[];
-    absolutePosition: Point; // New property to store absolute position
+    absolutePosition: Point;
 }
 
 const App: React.FC = () => {
@@ -68,8 +68,8 @@ const App: React.FC = () => {
             position: diagramComponents.length === 0 ? 'center' : newPosition,
             relativeToId: diagramComponents.length === 0 ? null : selected3DShape,
             top: [],
-            front: [],
-            side: [],
+            left: [],
+            right: [],
             attachmentPoints: [],
             absolutePosition: { x: 0, y: 0 }
         };
@@ -77,14 +77,14 @@ const App: React.FC = () => {
         setSelected3DShape(newId);
     };
 
-    const add2DShape = (shapeName: string, face: 'top' | 'front' | 'side') => {
+    const add2DShape = (shapeName: string, attach: 'top' | 'left' | 'right') => {
         if (selected3DShape !== null) {
             setDiagramComponents(prevComponents => {
                 return prevComponents.map(component => {
                     if (component.id === selected3DShape) {
                         return {
                             ...component,
-                            [face]: [...component[face], shapeName]
+                            [attach]: [...component[attach], shapeName]
                         };
                     }
                     return component;
@@ -100,14 +100,14 @@ const App: React.FC = () => {
         }
     };
 
-    const remove2DShape = (shapeIndex: number, face: 'top' | 'front' | 'side') => {
+    const remove2DShape = (shapeIndex: number, attach: 'top' | 'left' | 'right') => {
         if (selected3DShape !== null) {
             setDiagramComponents(prevComponents => {
                 return prevComponents.map(component => {
                     if (component.id === selected3DShape) {
                         return {
                             ...component,
-                            [face]: component[face].filter((_, i) => i !== shapeIndex)
+                            [attach]: component[attach].filter((_, i) => i !== shapeIndex)
                         };
                     }
                     return component;
@@ -126,12 +126,9 @@ const App: React.FC = () => {
             console.warn(`Reference component not found for ${component.id}`);
             return { x: canvasSize.width / 2, y: canvasSize.height / 2 };
         }
-        console.log(`absolute position calculation`);
-        console.log(component);
 
         const getAttachmentPoint = (comp: DiagramComponent, pointName: string): Point => {
             const point = comp.attachmentPoints.find(p => p.name === pointName);
-            console.log(`attachment point ${pointName} found at ${point}`);
             if (point) {
                 return { x: Math.abs(point.x), y: Math.abs(point.y) };
             }
@@ -167,14 +164,10 @@ const App: React.FC = () => {
                 console.warn(`Invalid position: ${component.position}`);
                 return { x: canvasSize.width / 2, y: canvasSize.height / 2 };
         }
-        const ax: number = referenceComponent.absolutePosition.x + refShapePoint.x - newShapePoint.x;
-        const ay: number = referenceComponent.absolutePosition.y + refShapePoint.y - newShapePoint.y;
 
-        console.log(`${referenceComponent.absolutePosition.x} + ${refShapePoint.x} - ${newShapePoint.x} = ${ax}`);
-        console.log(`${referenceComponent.absolutePosition.y} + ${refShapePoint.y} - ${newShapePoint.y} = ${ay}`);
         return {
-            x: ax,
-            y: ay
+            x: referenceComponent.absolutePosition.x + refShapePoint.x - newShapePoint.x,
+            y: referenceComponent.absolutePosition.y + refShapePoint.y - newShapePoint.y
         };
     };
 
@@ -191,14 +184,6 @@ const App: React.FC = () => {
 
         const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-        // Copy attributes from SVG to group, except for svg-specific attributes
-        //for (const attr of svgElement.attributes) {
-        //    if (!['xmlns', 'version', 'width', 'height', 'viewBox'].includes(attr.name)) {
-        //        group.setAttribute(attr.name, attr.value);
-        //    }
-        //}
-
-        // Move all child nodes from SVG to group
         while (svgElement.firstChild) {
             group.appendChild(svgElement.firstChild);
         }
@@ -210,129 +195,92 @@ const App: React.FC = () => {
         console.log('Compiling diagram...');
         const svgNamespace = "http://www.w3.org/2000/svg";
 
-        // Create a hidden SVG element for temporary rendering
-        const hiddenSvg = document.createElementNS(svgNamespace, "svg");
-        hiddenSvg.style.position = "absolute";
-        document.body.appendChild(hiddenSvg);
-
-        // Function to get bounding box of an SVG element
-        const getBoundingBox = (element: SVGElement | null): DOMRect => {
-            if (!element) {
-                console.warn('Attempted to get bounding box of null element');
-                return new DOMRect();
-            }
-            const tempContainer = document.createElementNS(svgNamespace, "g");
-            tempContainer.appendChild(element.cloneNode(true));
-            hiddenSvg.appendChild(tempContainer);
-            const bbox = tempContainer.getBBox();
-            hiddenSvg.removeChild(tempContainer);
-            return bbox;
-        };
-
-        // Create an SVG element for the final rendering of the composition
         const svgElement = document.createElementNS(svgNamespace, "svg");
         svgElement.setAttribute("width", canvasSize.width.toString());
         svgElement.setAttribute("height", canvasSize.height.toString());
         svgElement.setAttribute("viewBox", `0 0 ${canvasSize.width} ${canvasSize.height}`);
 
-        // Process all components: Calculate attachment points, position, and render components
         const processedComponents: DiagramComponent[] = [];
-        console.log('Starting composition');
 
-        diagramComponents.forEach((component, index) => {
+        diagramComponents.forEach((component) => {
             const shape3DElement = getSvgFromLibrary(component.shape);
             if (!shape3DElement) {
                 console.warn(`3D shape not found in library:`, component.shape);
                 processedComponents.push(component);
                 return;
             }
-            console.log(`Processing 3D shape ${component.shape} ${component.id}`);
 
             shape3DElement.setAttribute('id', component.id);
 
-            // Calculate attachment points
             const attachmentPoints: AttachmentPoint[] = [];
             ['top', 'bottom', 'front-left', 'front-right', 'back-left', 'back-right'].forEach(point => {
                 const pointElement = shape3DElement.querySelector(`#attach-${point}`);
                 if (pointElement) {
                     const attachPoint: AttachmentPoint = {
                         name: point,
-                        x: parseFloat(pointElement.getAttribute("cx") || "0"),
-                        y: parseFloat(pointElement.getAttribute("cy") || "0")
+                        x: Math.abs(parseFloat(pointElement.getAttribute("cx") || "0")),
+                        y: Math.abs(parseFloat(pointElement.getAttribute("cy") || "0"))
                     };
                     attachmentPoints.push(attachPoint);
-                } else {
-                    console.log(`No attach point: ${point}`);
                 }
             });
 
-            // Update the component with the new attachment points and absoloute position
             const updatedComponent = { ...component, attachmentPoints };
-
-            // Calculate absolute position
             const absolutePosition = calculateAbsolutePosition(updatedComponent, processedComponents);
-
-            // Update the component with the new attachment points and absoloute position
             updatedComponent.absolutePosition = absolutePosition;
 
-            // Set the transform attribute based on the absolute position
             shape3DElement.setAttribute('transform', `translate(${absolutePosition.x}, ${absolutePosition.y})`);
 
-            // Attach 2D shapes to faces
-            ['top', 'front', 'side'].forEach(face => {
-                const faceElement = shape3DElement.querySelector<SVGElement>(`#${face}-face`);
-                if (faceElement instanceof SVGElement) {
-                    const faceBBox = getBoundingBox(faceElement);
+            // Attach 2D shapes
+            ['top', 'left', 'right'].forEach(attach => {
+                (component[attach as keyof Pick<DiagramComponent, 'top' | 'left' | 'right'>] as string[]).forEach((shape2DName: string) => {
+                    const shape2DElement = getSvgFromLibrary(shape2DName);
+                    if (shape2DElement) {
+                        shape2DElement.setAttribute("id", `${attach}-${shape2DName}`);
 
-                    (component[face as keyof Pick<DiagramComponent, 'top' | 'front' | 'side'>] as string[]).forEach((shape2DName: string) => {
-                        const shape2DElement = getSvgFromLibrary(shape2DName);
-                        if (shape2DElement) {
-                            shape2DElement.setAttribute("id", `${face}-${shape2DName}`);
+                        const shape2DAttachPoint = shape2DElement.querySelector(`#attach-${getAttachPointFor2D(attach)}`);
+                        const shape3DAttachPoint = shape3DElement.querySelector(`#attach-${getAttachPointFor3D(attach)}`);
 
-                            console.log(`Found 2D shape:`, shape2DName);
-                            const shape2DBBox = getBoundingBox(shape2DElement);
-                            console.log(`2D Shape BBox:`, shape2DBBox);
+                        if (shape2DAttachPoint && shape3DAttachPoint) {
+                            const dx = Math.abs(parseFloat(shape3DAttachPoint.getAttribute("cx") || "0")) - Math.abs(parseFloat(shape2DAttachPoint.getAttribute("cx") || "0"));
+                            const dy = Math.abs(parseFloat(shape3DAttachPoint.getAttribute("cy") || "0")) - Math.abs(parseFloat(shape2DAttachPoint.getAttribute("cy") || "0"));
 
-                            // Calculate scaling to fit the shape within the face
-                            const scaleX = faceBBox.width / shape2DBBox.width;
-                            const scaleY = faceBBox.height / shape2DBBox.height;
-                            const scale = Math.min(scaleX, scaleY, 1); // Prevent enlarging if shape is bigger than face
-
-                            // Calculate translation
-                            const dx = faceBBox.x + (faceBBox.width - shape2DBBox.width * scale) / 2;
-                            const dy = faceBBox.y + (faceBBox.height - shape2DBBox.height * scale) / 2;
-                            console.log(`Calculated translation: dx=${dx}, dy=${dy}`);
-
-                            // Transform 2D shape element
-                            const transform = `translate(${dx}, ${dy}) scale(${scale})`;
-
-                            // Apply the transform to the group
+                            const transform = `translate(${dx}, ${dy})`;
                             shape2DElement.setAttribute('transform', transform);
                             shape3DElement.appendChild(shape2DElement);
+                        } else {
+                            console.warn(`Attachment points not found for 2D shape ${shape2DName} or 3D shape ${component.shape}`);
                         }
-                    });
-                } else {
-                    console.warn(`Face element for ${face} is not an SVGElement`);
-                }
+                    }
+                });
             });
 
             svgElement.appendChild(shape3DElement);
-
-            // Add the fully updated component to the processedComponents array
             processedComponents.push(updatedComponent);
-            console.log(processedComponents);
         });
-
-        // Clean up the hidden SVG
-        document.body.removeChild(hiddenSvg);
 
         const serializer = new XMLSerializer();
         const svgString = serializer.serializeToString(svgElement);
         setComposedSVG(svgString);
-
-        // Update the diagramComponents state with the new data
-        //setDiagramComponents(processedComponents);
     }, [diagramComponents, canvasSize, svgLibrary]);
+
+    const getAttachPointFor2D = (attach: string): string => {
+        switch (attach) {
+            case 'left': return 'back-right';
+            case 'right': return 'back-left';
+            case 'top': return 'bottom';
+            default: return '';
+        }
+    };
+
+    const getAttachPointFor3D = (attach: string): string => {
+        switch (attach) {
+            case 'left': return 'front-left';
+            case 'right': return 'front-right';
+            case 'top': return 'top';
+            default: return '';
+        }
+    };
 
     useEffect(() => {
         compileDiagram();
@@ -387,18 +335,18 @@ const App: React.FC = () => {
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Face</th>
+                                <th>Attach</th>
                                 <th>Action</th>
                             </tr>
-                        </thead>
+                            </thead>
                         <tbody>
                             {svgLibrary.filter(shape => shape.type === '2D').map(shape => (
                                 <tr key={shape.name}>
                                     <td>{shape.name}</td>
-                                    <td>{shape.face}</td>
+                                    <td>{shape.attach}</td>
                                     <td>
                                         <Button
-                                            onClick={() => add2DShape(shape.name, shape.face as 'top' | 'front' | 'side')}
+                                            onClick={() => add2DShape(shape.name, shape.attach as 'top' | 'left' | 'right')}
                                             disabled={selected3DShape === null}
                                         >
                                             Add
@@ -463,18 +411,18 @@ const App: React.FC = () => {
                                                 {i < component.top.length - 1 ? ', ' : ''}
                                             </span>
                                         ))}<br />
-                                        Front: {component.front.map((shape, i) => (
+                                        Left: {component.left.map((shape, i) => (
                                             <span key={i}>
                                                 {shape}
-                                                <Button onClick={() => remove2DShape(i, 'front')} className="ml-1 text-xs">X</Button>
-                                                {i < component.front.length - 1 ? ', ' : ''}
+                                                <Button onClick={() => remove2DShape(i, 'left')} className="ml-1 text-xs">X</Button>
+                                                {i < component.left.length - 1 ? ', ' : ''}
                                             </span>
                                         ))}<br />
-                                        Side: {component.side.map((shape, i) => (
+                                        Right: {component.right.map((shape, i) => (
                                             <span key={i}>
                                                 {shape}
-                                                <Button onClick={() => remove2DShape(i, 'side')} className="ml-1 text-xs">X</Button>
-                                                {i < component.side.length - 1 ? ', ' : ''}
+                                                <Button onClick={() => remove2DShape(i, 'right')} className="ml-1 text-xs">X</Button>
+                                                {i < component.right.length - 1 ? ', ' : ''}
                                             </span>
                                         ))}
                                     </td>
@@ -498,5 +446,5 @@ const App: React.FC = () => {
     );
 };
 
-export default App;            
-export type { DiagramComponent };          
+export default App;
+export type { DiagramComponent };                            
