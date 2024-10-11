@@ -112,7 +112,6 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onA
                     <label className="block mb-2">Position for next 3D shape:</label>
                     <RadixSelect
                         options={[
-                            { value: 'center', label: 'Center' },
                             { value: 'top', label: 'Top' },
                             { value: 'front-right', label: 'Front Right' },
                             { value: 'front-left', label: 'Front Left' },
