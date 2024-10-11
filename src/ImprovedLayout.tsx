@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from './components/ui/Button';
 import { RadixSelect } from './components/ui/Select';
 import { DiagramComponent } from './App';
+import SVGDisplay from './SVGDisplay';
 
 interface Shape {
     name: string;
@@ -85,10 +86,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
             {/* Right side SVG display */}
             <div className="flex flex-col flex-grow">
                 <h2 className="text-xl h-14 font-semibold p-4">Composed SVG:</h2>
-                <div
-                    dangerouslySetInnerHTML={{ __html: composedSVG }}
-                    className="flex-1 bg-white p-4 overflow-auto"
-                />
+                <SVGDisplay svgContent={composedSVG} />
             </div>
         </div>
     );
