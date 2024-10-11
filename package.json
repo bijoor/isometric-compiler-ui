@@ -8,6 +8,7 @@
     "dev": "vite",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "build": "tsc && vite build",
+    "build:css": "tailwindcss -i ./src/index.css -o ./src/output.css --watch",
     "build:gh-pages": "tsc && vite build --mode production --base=/isometric-compiler-ui/",
     "predeploy": "npm run build:gh-pages",
     "deploy": "gh-pages -d dist -r git@github.com:bijoor/isometric-compiler-ui.git",
@@ -30,10 +31,13 @@
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
     "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.38.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.3.4",
     "gh-pages": "^6.1.1",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
     "typescript": "^5.0.2",
     "vite": "^4.3.2"
   }

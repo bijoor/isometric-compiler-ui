@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from './components/ui/Button';
-import { RadixSelect } from './components/ui/Select';
 import { config } from './config';
+import ImprovedLayout from './ImprovedLayout';
 
 interface Shape {
     name: string;
@@ -63,12 +62,12 @@ const App: React.FC = () => {
         }
     };
 
-    const add3DShape = (shapeName: string) => {
+    const add3DShape = (shapeName: string, position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left') => {
         const newId = `shape-${Date.now()}`;
         const newComponent: DiagramComponent = {
             id: newId,
             shape: shapeName,
-            position: diagramComponents.length === 0 ? 'center' : newPosition,
+            position: position,
             relativeToId: diagramComponents.length === 0 ? null : selected3DShape,
             attached2DShapes: [],
             attachmentPoints: [],
@@ -101,20 +100,18 @@ const App: React.FC = () => {
         }
     };
 
-    const remove2DShape = (shapeIndex: number) => {
-        if (selected3DShape !== null) {
-            setDiagramComponents(prevComponents => {
-                return prevComponents.map(component => {
-                    if (component.id === selected3DShape) {
-                        return {
-                            ...component,
-                            attached2DShapes: component.attached2DShapes.filter((_, i) => i !== shapeIndex)
-                        };
-                    }
-                    return component;
-                });
+    const remove2DShape = (parentId: string, shapeIndex: number) => {
+        setDiagramComponents(prevComponents => {
+            return prevComponents.map(component => {
+                if (component.id === parentId) {
+                    return {
+                        ...component,
+                        attached2DShapes: component.attached2DShapes.filter((_, i) => i !== shapeIndex)
+                    };
+                }
+                return component;
             });
-        }
+        });
     };
 
     const calculateAbsolutePosition = (component: DiagramComponent, processedComponents: DiagramComponent[]): Point => {
@@ -267,152 +264,20 @@ const App: React.FC = () => {
     }, [compileDiagram]);
 
     return (
-        <div className="p-4 bg-gray-900 text-white min-h-screen">
-            <h1 className="text-2xl font-bold mb-4">Isometric Compiler UI</h1>
-
-            <div className="mb-4">
-                <label className="block mb-2">Canvas Size:</label>
-                <input
-                    type="number"
-                    value={canvasSize.width}
-                    onChange={(e) => setCanvasSize({ ...canvasSize, width: parseInt(e.target.value) })}
-                    className="mr-2 bg-gray-700 text-white p-2 rounded"
-                />
-                <input
-                    type="number"
-                    value={canvasSize.height}
-                    onChange={(e) => setCanvasSize({ ...canvasSize, height: parseInt(e.target.value) })}
-                    className="bg-gray-700 text-white p-2 rounded"
-                />
-            </div>
-
-            <div>
-                <h2 className="text-xl font-semibold mb-2">3D Shapes</h2>
-                <table className="w-full">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {svgLibrary.filter(shape => shape.type === '3D').map(shape => (
-                            <tr key={shape.name}>
-                                <td>{shape.name}</td>
-                                <td>
-                                    <Button onClick={() => add3DShape(shape.name)}>
-                                        Add
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            <div>
-                <h2 className="text-xl font-semibold mb-2">2D Shapes</h2>
-                <table className="w-full">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Attach To</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {svgLibrary.filter(shape => shape.type === '2D').map(shape => (
-                            <tr key={shape.name}>
-                                <td>{shape.name}</td>
-                                <td>{shape.attachTo}</td>
-                                <td>
-                                    <Button
-                                        onClick={() => add2DShape(shape.name, shape.attachTo || '')}
-                                        disabled={selected3DShape === null}
-                                    >
-                                        Add
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            <div>
-                <h2 className="text-xl font-semibold mb-2">Composition</h2>
-                {diagramComponents.length > 0 && (
-                    <div className="mb-4">
-                        <label className="block mb-2">Position for next 3D shape:</label>
-                        <RadixSelect
-                            options={[
-                                { value: 'top', label: 'Top' },
-                                { value: 'front-right', label: 'Front Right' },
-                                { value: 'front-left', label: 'Front Left' },
-                                { value: 'back-right', label: 'Back Right' },
-                                { value: 'back-left', label: 'Back Left' },
-                            ]}
-                            onChange={(value) => setNewPosition(value as 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left')}
-                            placeholder="Select position"
-                        />
-                    </div>
-                )}
-                <table className="w-full">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>Shape</th>
-                            <th>Position</th>
-                            <th>Relative To</th>
-                            <th>Attachment Points</th>
-                            <th>Attached 2D Shapes</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {diagramComponents.map((component) => (
-                            <tr
-                                key={component.id}
-                                className={selected3DShape === component.id ? 'bg-blue-900' : ''}
-                            >
-                                <td>
-                                    <input
-                                        type="radio"
-                                        checked={selected3DShape === component.id}
-                                        onChange={() => setSelected3DShape(component.id)}
-                                    />
-                                </td>
-                                <td>{component.shape}</td>
-                                <td>{component.position}</td>
-                                <td>{component.relativeToId ? diagramComponents.find(c => c.id === component.relativeToId)?.shape : 'None'}</td>
-                                <td>{component.attachmentPoints.map(ap => ap.name).join(', ')}</td>
-                                <td>
-                                    {component.attached2DShapes.map((shape, i) => (
-                                        <div key={i}>
-                                            {shape.name} (attached to {shape.attachedTo})
-                                            <Button onClick={() => remove2DShape(i)} className="ml-1 text-xs">X</Button>
-                                            {i < component.attached2DShapes.length - 1 ? ', ' : ''}
-                                        </div>
-                                    ))}
-                                </td>
-                                <td>
-                                    <Button onClick={() => remove3DShape(component.id)}>Remove</Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {composedSVG && (
-                <div className="mt-4">
-                    <h2 className="text-xl font-semibold mb-2">Composed SVG:</h2>
-                    <div dangerouslySetInnerHTML={{ __html: composedSVG }} className="bg-white p-4 rounded" style={{ minHeight: '200px' }} />
-                </div>
-            )}
-        </div>
-    );
-};
+        <ImprovedLayout
+            svgLibrary={svgLibrary}
+            diagramComponents={diagramComponents}
+            selected3DShape={selected3DShape}
+            canvasSize={canvasSize}
+            composedSVG={composedSVG}
+            onAdd3DShape={add3DShape}
+            onAdd2DShape={add2DShape}
+            onRemove3DShape={remove3DShape}
+            onRemove2DShape={remove2DShape}
+            onSelect3DShape={setSelected3DShape}
+            onSetCanvasSize={setCanvasSize}
+        />
+    );};
 
 export default App;
 export type { DiagramComponent };                            
