@@ -19,14 +19,18 @@ const DiagramComponentsDisplay: React.FC<DiagramComponentsDisplayProps> = ({ com
             <li key={index} className="mb-2">
               <strong>{component.shape}</strong> (Position: {component.position})
               <ul className="list-circle pl-5">
-                {component.top.length > 0 && (
-                  <li>Top: {component.top.join(', ')}</li>
-                )}
-                {component.left.length > 0 && (
-                  <li>Left: {component.left.join(', ')}</li>
-                )}
-                {component.right.length > 0 && (
-                  <li>Side: {component.right.join(', ')}</li>
+                <li>Attachment Points: {component.attachmentPoints.map(ap => ap.name).join(', ')}</li>
+                {component.attached2DShapes.length > 0 && (
+                  <li>
+                    Attached 2D Shapes:
+                    <ul className="list-square pl-5">
+                      {component.attached2DShapes.map((shape, i) => (
+                        <li key={i}>
+                          {shape.name} (attached to {shape.attachedTo})
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
                 )}
               </ul>
             </li>
