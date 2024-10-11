@@ -22,11 +22,11 @@ const DiagramComponentsDisplay: React.FC<DiagramComponentsDisplayProps> = ({ com
                 {component.top.length > 0 && (
                   <li>Top: {component.top.join(', ')}</li>
                 )}
-                {component.front.length > 0 && (
-                  <li>Front: {component.front.join(', ')}</li>
+                {component.left.length > 0 && (
+                  <li>Left: {component.left.join(', ')}</li>
                 )}
-                {component.side.length > 0 && (
-                  <li>Side: {component.side.join(', ')}</li>
+                {component.right.length > 0 && (
+                  <li>Side: {component.right.join(', ')}</li>
                 )}
               </ul>
             </li>
