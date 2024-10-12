@@ -1,37 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { config } from './config';
+import { Shape, Point, AttachmentPoint, Attached2DShape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
 
-interface Shape {
-    name: string;
-    type: string;
-    attachTo?: string;
-    svgContent: string;
-}
-
-interface Point {
-    x: number;
-    y: number;
-}
-
-interface AttachmentPoint extends Point {
-    name: string;
-}
-
-interface Attached2DShape {
-    name: string;
-    attachedTo: string;
-}
-
-interface DiagramComponent {
-    id: string;
-    shape: string;
-    position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left';
-    relativeToId: string | null;
-    attached2DShapes: Attached2DShape[];
-    attachmentPoints: AttachmentPoint[];
-    absolutePosition: Point;
-}
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -263,6 +234,10 @@ const App: React.FC = () => {
         compileDiagram();
     }, [compileDiagram]);
 
+    const updateSvgLibrary = (newLibrary: Shape[]) => {
+        setSvgLibrary(newLibrary);
+    };
+
     return (
         <ImprovedLayout
             svgLibrary={svgLibrary}
@@ -276,8 +251,8 @@ const App: React.FC = () => {
             onRemove2DShape={remove2DShape}
             onSelect3DShape={setSelected3DShape}
             onSetCanvasSize={setCanvasSize}
+            onUpdateSvgLibrary={updateSvgLibrary}
         />
     );};
 
 export default App;
-export type { DiagramComponent };                            

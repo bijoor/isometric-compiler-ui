@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { Button } from './components/ui/Button';
 import { RadixSelect } from './components/ui/Select';
-import { DiagramComponent } from './App';
 import SVGDisplay from './SVGDisplay';
-
-interface Shape {
-    name: string;
-    type: string;
-    attachTo?: string;
-    svgContent: string;
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/Dialog';
+import { Input } from './components/ui/Input';
+import { DiagramComponent, Shape } from './Types';
+import { loadShapesFromGoogleDrive } from './GoogleDriveUtils';
 
 interface ImprovedLayoutProps {
     svgLibrary: Shape[];
@@ -23,6 +19,7 @@ interface ImprovedLayoutProps {
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
     onSelect3DShape: (id: string) => void;
     onSetCanvasSize: (size: { width: number; height: number }) => void;
+    onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
 }
 
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
@@ -36,9 +33,30 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onRemove3DShape,
     onRemove2DShape,
     onSelect3DShape,
-    onSetCanvasSize
+    onSetCanvasSize,
+    onUpdateSvgLibrary
 }) => {
-    const [activePanel, setActivePanel] = useState<'shapes' | 'composition'>('shapes');
+    const [activePanel, setActivePanel] = useState<'shapes' | 'composition' | 'settings'>('shapes');
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [folderUrl, setFolderUrl] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
+
+    const handleLoadFromGoogleDrive = async () => {
+        setError(null);
+        setLoadingProgress(null);
+        try {
+            const newLibrary = await loadShapesFromGoogleDrive(folderUrl, (progress) => {
+                setLoadingProgress(progress);
+            });
+            onUpdateSvgLibrary(newLibrary);
+            setIsDialogOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setLoadingProgress(null);
+        }
+    };
 
     return (
         <div className="flex flex-row h-screen w-screen bg-gray-900 text-white">
@@ -47,37 +65,49 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                 {/* Tab buttons */}
                 <div className="flex flex-row h-14 border-b border-gray-700">
                     <button
-                        className={`flex-col w-1/2 py-2 ${activePanel === 'shapes' ? 'bg-blue-600' : 'bg-gray-800'}`}
+                        className={`flex-col w-1/3 py-2 ${activePanel === 'shapes' ? 'bg-blue-600' : 'bg-gray-800'}`}
                         onClick={() => setActivePanel('shapes')}
                     >
                         Shapes
                     </button>
                     <button
-                        className={`flex-col w-1/2 py-2 ${activePanel === 'composition' ? 'bg-blue-600' : 'bg-gray-800'}`}
+                        className={`flex-col w-1/3 py-2 ${activePanel === 'composition' ? 'bg-blue-600' : 'bg-gray-800'}`}
                         onClick={() => setActivePanel('composition')}
                     >
                         Composition
+                    </button>
+                    <button
+                        className={`flex-col w-1/3 py-2 ${activePanel === 'settings' ? 'bg-blue-600' : 'bg-gray-800'}`}
+                        onClick={() => setActivePanel('settings')}
+                    >
+                        Settings
                     </button>
                 </div>
 
                 {/* Panel content */}
                 <div className="flex-grow overflow-auto">
-                    {activePanel === 'shapes' ? (
+                    {activePanel === 'shapes' && (
                         <ShapesPanel
                             svgLibrary={svgLibrary}
                             onAdd3DShape={onAdd3DShape}
                             onAdd2DShape={onAdd2DShape}
                             selected3DShape={selected3DShape}
                         />
-                    ) : (
+                    )}
+                    {activePanel === 'composition' && (
                         <CompositionPanel
                             diagramComponents={diagramComponents}
                             onRemove3DShape={onRemove3DShape}
                             onRemove2DShape={onRemove2DShape}
                             onSelect3DShape={onSelect3DShape}
                             selected3DShape={selected3DShape}
+                        />
+                    )}
+                    {activePanel === 'settings' && (
+                        <SettingsPanel
                             canvasSize={canvasSize}
                             onSetCanvasSize={onSetCanvasSize}
+                            onOpenGoogleDriveDialog={() => setIsDialogOpen(true)}
                         />
                     )}
                 </div>
@@ -88,6 +118,46 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                 <h2 className="text-xl h-14 font-semibold p-4">Composed SVG:</h2>
                 <SVGDisplay svgContent={composedSVG} />
             </div>
+
+            {/* Google Drive Folder URL Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="bg-gray-800 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Load Shapes from Google Drive</DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            Enter the URL of the Google Drive folder containing your SVG files and index.csv
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Input
+                        value={folderUrl}
+                        onChange={(e) => setFolderUrl(e.target.value)}
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        className="bg-gray-700 text-white placeholder-gray-400"
+                    />
+                    {error && <p className="text-red-400 mt-2">{error}</p>}
+                    {loadingProgress && (
+                        <div className="mt-4 text-white">
+                            <p>Loading: {loadingProgress.currentFile}</p>
+                            <p>Progress: {loadingProgress.loadedFiles} / {loadingProgress.totalFiles}</p>
+                            <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                                <div
+                                    className="bg-blue-500 h-2.5 rounded-full"
+                                    style={{ width: `${(loadingProgress.loadedFiles / loadingProgress.totalFiles) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            onClick={handleLoadFromGoogleDrive}
+                            disabled={!!loadingProgress}
+                            className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600"
+                        >
+                            {loadingProgress ? 'Loading...' : 'Load Shapes'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
@@ -182,8 +252,6 @@ interface CompositionPanelProps {
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
     onSelect3DShape: (id: string) => void;
     selected3DShape: string | null;
-    canvasSize: { width: number; height: number };
-    onSetCanvasSize: (size: { width: number; height: number }) => void;
 }
 
 const CompositionPanel: React.FC<CompositionPanelProps> = ({
@@ -192,33 +260,8 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
     onRemove2DShape,
     onSelect3DShape,
     selected3DShape,
-    canvasSize,
-    onSetCanvasSize,
 }) => (
     <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-gray-700">
-            <h2 className="text-xl font-semibold mb-4">Canvas Size</h2>
-            <div className="flex space-x-4">
-                <div className="flex-1">
-                    <label className="block mb-2">Width:</label>
-                    <input
-                        type="number"
-                        value={canvasSize.width}
-                        onChange={(e) => onSetCanvasSize({ ...canvasSize, width: parseInt(e.target.value) })}
-                        className="w-full bg-gray-700 text-white p-2 rounded"
-                    />
-                </div>
-                <div className="flex-1">
-                    <label className="block mb-2">Height:</label>
-                    <input
-                        type="number"
-                        value={canvasSize.height}
-                        onChange={(e) => onSetCanvasSize({ ...canvasSize, height: parseInt(e.target.value) })}
-                        className="w-full bg-gray-700 text-white p-2 rounded"
-                    />
-                </div>
-            </div>
-        </div>
         <div className="flex-grow overflow-auto p-4">
             <h2 className="text-xl font-semibold mb-4">Composition</h2>
             <div className="space-y-4">
@@ -243,7 +286,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                         <div>
                             <h4 className="font-semibold mb-1">Attached 2D Shapes:</h4>
                             {component.attached2DShapes.length > 0 ? (
-                                <ul className="space-y-2"> {/* Increased spacing between list items */}
+                                <ul className="space-y-2">
                                     {component.attached2DShapes.map((shape, i) => (
                                         <li key={i} className="flex justify-between items-center bg-gray-700 p-2 rounded">
                                             <span>{shape.name} (attached to {shape.attachedTo})</span>
@@ -258,6 +301,53 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                     </div>
                 ))}
             </div>
+        </div>
+    </div>
+);
+
+interface SettingsPanelProps {
+    canvasSize: { width: number; height: number };
+    onSetCanvasSize: (size: { width: number; height: number }) => void;
+    onOpenGoogleDriveDialog: () => void;
+}
+
+const SettingsPanel: React.FC<SettingsPanelProps> = ({
+    canvasSize,
+    onSetCanvasSize,
+    onOpenGoogleDriveDialog,
+}) => (
+    <div className="flex flex-col h-full p-4">
+        <h2 className="text-xl font-semibold mb-4">Settings</h2>
+
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Canvas Size</h3>
+            <div className="flex space-x-4">
+                <div className="flex-1">
+                    <label className="block mb-2">Width:</label>
+                    <input
+                        type="number"
+                        value={canvasSize.width}
+                        onChange={(e) => onSetCanvasSize({ ...canvasSize, width: parseInt(e.target.value) })}
+                        className="w-full bg-gray-700 text-white p-2 rounded"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="block mb-2">Height:</label>
+                    <input
+                        type="number"
+                        value={canvasSize.height}
+                        onChange={(e) => onSetCanvasSize({ ...canvasSize, height: parseInt(e.target.value) })}
+                        className="w-full bg-gray-700 text-white p-2 rounded"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3 className="text-lg font-semibold mb-2">Shape Library</h3>
+            <Button onClick={onOpenGoogleDriveDialog} className="w-full mb-4">
+                Load Shapes from Google Drive
+            </Button>
         </div>
     </div>
 );

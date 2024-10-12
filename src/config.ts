@@ -1,5 +1,13 @@
 // src/config.ts
 
+const getGoogleKeys = () => {
+    return {
+        CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        DISCOVERY_DOCS: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+        SCOPES: 'https://www.googleapis.com/auth/drive.readonly'
+    };
+}
+
 const getServerUrl = () => {
     if (import.meta.env.MODE === 'production') {
         // For GitHub Pages (production) environment
@@ -14,5 +22,6 @@ const getServerUrl = () => {
 };
 
 export const config = {
-    serverUrl: getServerUrl()
+    serverUrl: getServerUrl(),
+    googleKeys: getGoogleKeys()
 };

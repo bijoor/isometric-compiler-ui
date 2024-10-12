@@ -1,7 +1,7 @@
 import React from 'react';
 
-// Import the DiagramComponent interface from App.tsx
-import type { DiagramComponent } from './App';
+// Import the DiagramComponent interface from types.ts
+import type { DiagramComponent } from './Types';
 
 interface DiagramComponentsDisplayProps {
   components: DiagramComponent[];
