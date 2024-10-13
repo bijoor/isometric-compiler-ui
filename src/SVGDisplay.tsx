@@ -3,9 +3,11 @@ import { Button } from './components/ui/Button';
 
 interface SVGDisplayProps {
   svgContent: string;
+  selected3DShape: string | null;
+  onSelect3DShape: (id: string | null) => void;
 }
 
-const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
+const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent, selected3DShape, onSelect3DShape }) => {
   const [scale, setScale] = useState(1);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 1000, height: 1000 });
   const [dragging, setDragging] = useState(false);
@@ -25,11 +27,9 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
 
         let newWidth, newHeight;
         if (containerAspectRatio > svgAspectRatio) {
-          // Container is wider than SVG
           newHeight = containerHeight;
           newWidth = newHeight * svgAspectRatio;
         } else {
-          // Container is taller than SVG or same aspect ratio
           newWidth = containerWidth;
           newHeight = newWidth / svgAspectRatio;
         }
@@ -49,6 +49,23 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
       window.removeEventListener('resize', fitSvgToContainer);
     };
   }, [svgContent, viewBox]);
+
+  useEffect(() => {
+    if (svgRef.current && selected3DShape) {
+      const svg = svgRef.current;
+      const selectedElement = svg.getElementById(selected3DShape);
+      
+      // Remove highlight from all elements
+      svg.querySelectorAll('.highlighted-shape').forEach(el => {
+        el.classList.remove('highlighted-shape');
+      });
+
+      // Add highlight to the selected element
+      if (selectedElement) {
+        selectedElement.classList.add('highlighted-shape');
+      }
+    }
+  }, [selected3DShape, svgContent]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
@@ -102,11 +119,15 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
     }
   };
 
-  // Parse the SVG content to extract viewBox
-  const parser = new DOMParser();
-  const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-  const svgElement = svgDoc.documentElement;
-  const originalViewBox = svgElement.getAttribute('viewBox') || '0 0 1000 1000';
+  const handleShapeClick = (e: React.MouseEvent) => {
+    const target = e.target as SVGElement;
+    const shape3D = target.closest('[id^="shape-"]');
+    if (shape3D) {
+      onSelect3DShape(shape3D.id);
+    } else {
+      onSelect3DShape(null);
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-gray-100 border border-gray-300">
@@ -115,11 +136,12 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
         className="absolute bg-white"
-        dangerouslySetInnerHTML={{ __html: svgElement.innerHTML }}
+        dangerouslySetInnerHTML={{ __html: svgContent }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={handleShapeClick}
       />
       <div className="absolute bottom-4 right-4 flex space-x-2">
         <Button onClick={() => handleZoom(1.2)} className="bg-gray-800 text-white px-2 py-1 text-sm rounded">
@@ -132,6 +154,14 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent }) => {
           Reset
         </Button>
       </div>
+      <style>
+        {`
+          .highlighted-shape {
+            outline: 1px dashed #007bff;
+            outline-offset: 2px;
+          }
+        `}
+      </style>
     </div>
   );
 };

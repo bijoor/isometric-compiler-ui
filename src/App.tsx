@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { config } from './config';
 import { Shape, Point, AttachmentPoint, Attached2DShape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './components/ui/Dialog';
+import { Button } from './components/ui/Button';
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -11,6 +12,7 @@ const App: React.FC = () => {
     const [composedSVG, setComposedSVG] = useState<string>('');
     const [selected3DShape, setSelected3DShape] = useState<string | null>(null);
     const [newPosition, setNewPosition] = useState<'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left'>('top');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchSvgLibrary();
@@ -30,10 +32,16 @@ const App: React.FC = () => {
             setSvgLibrary(data);
         } catch (error) {
             console.error('Error fetching SVG library:', error);
+            setErrorMessage('Failed to fetch SVG library. Please try again later.');
         }
     };
 
-    const add3DShape = (shapeName: string, position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left') => {
+    const add3DShape = (shapeName: string, position: 'top' | 'front-right' | 'front-left') => {
+        if (diagramComponents.length > 0 && selected3DShape === null) {
+            setErrorMessage('Please select a 3D shape to attach this new shape to.');
+            return;
+        }
+
         const newId = `shape-${Date.now()}`;
         const newComponent: DiagramComponent = {
             id: newId,
@@ -61,15 +69,28 @@ const App: React.FC = () => {
                     return component;
                 });
             });
+        } else {
+            setErrorMessage('Please select a 3D shape to attach this 2D shape to.');
         }
     };
 
     const remove3DShape = (id: string) => {
-        setDiagramComponents(prevComponents => prevComponents.filter(component => component.id !== id));
-        if (selected3DShape === id) {
-            setSelected3DShape(null);
-        }
+        setDiagramComponents(prevComponents => {
+            const updatedComponents = prevComponents.filter(component => component.id !== id);
+
+            // If we're removing the currently selected shape, select the first remaining shape (if any)
+            if (selected3DShape === id) {
+                if (updatedComponents.length > 0) {
+                    setSelected3DShape(updatedComponents[0].id);
+                } else {
+                    setSelected3DShape(null);
+                }
+            }
+
+            return updatedComponents;
+        });
     };
+
 
     const remove2DShape = (parentId: string, shapeIndex: number) => {
         setDiagramComponents(prevComponents => {
@@ -228,6 +249,7 @@ const App: React.FC = () => {
         const serializer = new XMLSerializer();
         const svgString = serializer.serializeToString(svgElement);
         setComposedSVG(svgString);
+
     }, [diagramComponents, canvasSize, svgLibrary]);
 
     useEffect(() => {
@@ -238,21 +260,51 @@ const App: React.FC = () => {
         setSvgLibrary(newLibrary);
     };
 
+    interface ErrorDialogProps {
+        isOpen: boolean;
+        onClose: () => void;
+        message: string;
+    }
+
+    const ErrorDialog: React.FC<ErrorDialogProps> = ({ isOpen, onClose, message }) => {
+        return (
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Error</DialogTitle>
+                    </DialogHeader>
+                    <p>{message}</p>
+                    <DialogFooter>
+                        <Button onClick={onClose}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
     return (
-        <ImprovedLayout
-            svgLibrary={svgLibrary}
-            diagramComponents={diagramComponents}
-            selected3DShape={selected3DShape}
-            canvasSize={canvasSize}
-            composedSVG={composedSVG}
-            onAdd3DShape={add3DShape}
-            onAdd2DShape={add2DShape}
-            onRemove3DShape={remove3DShape}
-            onRemove2DShape={remove2DShape}
-            onSelect3DShape={setSelected3DShape}
-            onSetCanvasSize={setCanvasSize}
-            onUpdateSvgLibrary={updateSvgLibrary}
-        />
-    );};
+        <>
+            <ImprovedLayout
+                svgLibrary={svgLibrary}
+                diagramComponents={diagramComponents}
+                selected3DShape={selected3DShape}
+                canvasSize={canvasSize}
+                composedSVG={composedSVG}
+                onAdd3DShape={add3DShape}
+                onAdd2DShape={add2DShape}
+                onRemove3DShape={remove3DShape}
+                onRemove2DShape={remove2DShape}
+                onSelect3DShape={setSelected3DShape}
+                onSetCanvasSize={setCanvasSize}
+                onUpdateSvgLibrary={updateSvgLibrary}
+            />
+            <ErrorDialog
+                isOpen={errorMessage !== null}
+                onClose={() => setErrorMessage(null)}
+                message={errorMessage || ''}
+            />
+        </>
+    );
+};
 
 export default App;

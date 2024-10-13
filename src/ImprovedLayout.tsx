@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from './components/ui/Button';
-import { RadixSelect } from './components/ui/Select';
 import SVGDisplay from './SVGDisplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/Dialog';
 import { Input } from './components/ui/Input';
+import { ToggleGroup, ToggleGroupOption } from './components/ui/ToggleGroup';
 import { DiagramComponent, Shape } from './Types';
 import { loadShapesFromGoogleDrive } from './GoogleDriveUtils';
 
@@ -13,11 +13,11 @@ interface ImprovedLayoutProps {
     selected3DShape: string | null;
     canvasSize: { width: number; height: number };
     composedSVG: string;
-    onAdd3DShape: (shapeName: string, position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left') => void;
+    onAdd3DShape: (shapeName: string, position: 'top' | 'front-right' | 'front-left') => void;
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
-    onSelect3DShape: (id: string) => void;
+    onSelect3DShape: (id: string | null) => void;  
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
 }
@@ -116,7 +116,11 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
             {/* Right side SVG display */}
             <div className="flex flex-col flex-grow">
                 <h2 className="text-xl h-14 font-semibold p-4">Composed SVG:</h2>
-                <SVGDisplay svgContent={composedSVG} />
+                <SVGDisplay
+                    svgContent={composedSVG}
+                    selected3DShape={selected3DShape}
+                    onSelect3DShape={onSelect3DShape}
+                />
             </div>
 
             {/* Google Drive Folder URL Dialog */}
@@ -164,13 +168,19 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
 
 interface ShapesPanelProps {
     svgLibrary: Shape[];
-    onAdd3DShape: (shapeName: string, position: 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left') => void;
+    onAdd3DShape: (shapeName: string, position: 'top' | 'front-right' | 'front-left') => void;
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     selected3DShape: string | null;
 }
 
 const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onAdd2DShape, selected3DShape }) => {
-    const [newPosition, setNewPosition] = useState<'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left'>('center');
+    const [selectedPosition, setSelectedPosition] = useState<'top' | 'front-right' | 'front-left'>('top');
+
+    const positionOptions: ToggleGroupOption[] = [
+        { value: 'top', label: 'Top' },
+        { value: 'front-right', label: 'Front Right' },
+        { value: 'front-left', label: 'Front Left' },
+    ];
 
     return (
         <div className="flex flex-col h-full">
@@ -178,16 +188,10 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onA
                 <h2 className="text-xl font-semibold mb-4 p-4">3D Shapes</h2>
                 <div className="mb-4 px-4">
                     <label className="block mb-2">Position for next 3D shape:</label>
-                    <RadixSelect
-                        options={[
-                            { value: 'top', label: 'Top' },
-                            { value: 'front-right', label: 'Front Right' },
-                            { value: 'front-left', label: 'Front Left' },
-                            { value: 'back-right', label: 'Back Right' },
-                            { value: 'back-left', label: 'Back Left' },
-                        ]}
-                        onChange={(value) => setNewPosition(value as 'center' | 'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left')}
-                        placeholder="Select position"
+                    <ToggleGroup
+                        options={positionOptions}
+                        value={selectedPosition}
+                        onValueChange={(value) => setSelectedPosition(value as 'top' | 'front-right' | 'front-left')}
                     />
                 </div>
                 <div className="px-4">
@@ -203,7 +207,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onA
                                 <tr key={shape.name}>
                                     <td>{shape.name}</td>
                                     <td className="text-right">
-                                        <Button onClick={() => onAdd3DShape(shape.name, newPosition)}>Add</Button>
+                                        <Button onClick={() => onAdd3DShape(shape.name, selectedPosition)}>Add</Button>
                                     </td>
                                 </tr>
                             ))}
