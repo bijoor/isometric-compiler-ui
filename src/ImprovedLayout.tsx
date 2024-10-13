@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from './components/ui/Button';
 import SVGDisplay from './SVGDisplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/Dialog';
@@ -42,6 +42,11 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
 
+    const handleSelect3DShape = useCallback((id: string | null) => {
+        console.log('ImprovedLayout: Selecting 3D shape:', id);
+        onSelect3DShape(id);
+    }, [onSelect3DShape]);
+    
     const handleLoadFromGoogleDrive = async () => {
         setError(null);
         setLoadingProgress(null);
@@ -92,6 +97,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             onAdd3DShape={onAdd3DShape}
                             onAdd2DShape={onAdd2DShape}
                             selected3DShape={selected3DShape}
+                            diagramComponents={diagramComponents}
                         />
                     )}
                     {activePanel === 'composition' && (
@@ -99,7 +105,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             diagramComponents={diagramComponents}
                             onRemove3DShape={onRemove3DShape}
                             onRemove2DShape={onRemove2DShape}
-                            onSelect3DShape={onSelect3DShape}
+                            onSelect3DShape={handleSelect3DShape}
                             selected3DShape={selected3DShape}
                         />
                     )}
@@ -119,7 +125,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                 <SVGDisplay
                     svgContent={composedSVG}
                     selected3DShape={selected3DShape}
-                    onSelect3DShape={onSelect3DShape}
+                    onSelect3DShape={handleSelect3DShape}
                 />
             </div>
 
@@ -171,16 +177,21 @@ interface ShapesPanelProps {
     onAdd3DShape: (shapeName: string, position: 'top' | 'front-right' | 'front-left') => void;
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     selected3DShape: string | null;
+    diagramComponents: DiagramComponent[];
 }
 
-const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onAdd2DShape, selected3DShape }) => {
+const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onAdd2DShape, selected3DShape, diagramComponents }) => {
     const [selectedPosition, setSelectedPosition] = useState<'top' | 'front-right' | 'front-left'>('top');
 
     const positionOptions: ToggleGroupOption[] = [
         { value: 'top', label: 'Top' },
-        { value: 'front-right', label: 'Front Right' },
         { value: 'front-left', label: 'Front Left' },
+        { value: 'front-right', label: 'Front Right' },
     ];
+
+    const shouldDisable3DShapeButtons = () => {
+        return diagramComponents.length > 0 && selected3DShape === null;
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -207,7 +218,12 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onA
                                 <tr key={shape.name}>
                                     <td>{shape.name}</td>
                                     <td className="text-right">
-                                        <Button onClick={() => onAdd3DShape(shape.name, selectedPosition)}>Add</Button>
+                                        <Button 
+                                            onClick={() => onAdd3DShape(shape.name, selectedPosition)}
+                                            disabled={shouldDisable3DShapeButtons()} 
+                                        >
+                                            Add
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}

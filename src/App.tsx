@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { config } from './config';
 import { Shape, Point, AttachmentPoint, Attached2DShape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './components/ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './components/ui/Dialog';
 import { Button } from './components/ui/Button';
 
 const App: React.FC = () => {
@@ -36,27 +36,37 @@ const App: React.FC = () => {
         }
     };
 
-    const add3DShape = (shapeName: string, position: 'top' | 'front-right' | 'front-left') => {
-        if (diagramComponents.length > 0 && selected3DShape === null) {
-            setErrorMessage('Please select a 3D shape to attach this new shape to.');
-            return;
-        }
+    const handleSelect3DShape = useCallback((id: string | null) => {
+        console.log('App: Selecting 3D shape:', id);
+        setSelected3DShape(id);
+    }, []);
 
-        const newId = `shape-${Date.now()}`;
-        const newComponent: DiagramComponent = {
-            id: newId,
-            shape: shapeName,
-            position: position,
-            relativeToId: diagramComponents.length === 0 ? null : selected3DShape,
-            attached2DShapes: [],
-            attachmentPoints: [],
-            absolutePosition: { x: 0, y: 0 }
-        };
-        setDiagramComponents(prevComponents => [...prevComponents, newComponent]);
-        setSelected3DShape(newId);
-    };
+    const add3DShape = useCallback((shapeName: string, position: 'top' | 'front-right' | 'front-left') => {
+        setDiagramComponents(prevComponents => {
+            // Check if this is the first shape or if there's a selected shape
+            if (prevComponents.length === 0 || selected3DShape !== null) {
+                const newId = `shape-${Date.now()}`;
+                console.log(`Adding 3D shape relative to ${selected3DShape}. Current component count: ${prevComponents.length}`);
+                const newComponent: DiagramComponent = {
+                    id: newId,
+                    shape: shapeName,
+                    position: position,
+                    relativeToId: prevComponents.length === 0 ? null : selected3DShape,
+                    attached2DShapes: [],
+                    attachmentPoints: [],
+                    absolutePosition: { x: 0, y: 0 }
+                };
+                handleSelect3DShape(newId);
+                return [...prevComponents, newComponent];
+            } else {
+                // If it's not the first shape and no shape is selected, don't add the new shape
+                setErrorMessage('Please select a 3D shape before adding a new one.');
+                return prevComponents;
+            }
+        });
+    }, [selected3DShape, handleSelect3DShape]);
 
-    const add2DShape = (shapeName: string, attachTo: string) => {
+    const add2DShape = useCallback((shapeName: string, attachTo: string) => {
         if (selected3DShape !== null) {
             setDiagramComponents(prevComponents => {
                 return prevComponents.map(component => {
@@ -72,27 +82,27 @@ const App: React.FC = () => {
         } else {
             setErrorMessage('Please select a 3D shape to attach this 2D shape to.');
         }
-    };
+    }, [selected3DShape]);
 
-    const remove3DShape = (id: string) => {
+    const remove3DShape = useCallback((id: string) => {
         setDiagramComponents(prevComponents => {
             const updatedComponents = prevComponents.filter(component => component.id !== id);
 
             // If we're removing the currently selected shape, select the first remaining shape (if any)
             if (selected3DShape === id) {
                 if (updatedComponents.length > 0) {
-                    setSelected3DShape(updatedComponents[0].id);
+                    handleSelect3DShape(updatedComponents[0].id);
                 } else {
-                    setSelected3DShape(null);
+                    handleSelect3DShape(null);
                 }
             }
 
             return updatedComponents;
         });
-    };
+    }, [selected3DShape, handleSelect3DShape]);
 
 
-    const remove2DShape = (parentId: string, shapeIndex: number) => {
+    const remove2DShape = useCallback((parentId: string, shapeIndex: number) => {
         setDiagramComponents(prevComponents => {
             return prevComponents.map(component => {
                 if (component.id === parentId) {
@@ -104,7 +114,8 @@ const App: React.FC = () => {
                 return component;
             });
         });
-    };
+    }, []);
+
 
     const calculateAbsolutePosition = (component: DiagramComponent, processedComponents: DiagramComponent[]): Point => {
         if (component.position === 'center' || !component.relativeToId) {
@@ -260,6 +271,11 @@ const App: React.FC = () => {
         setSvgLibrary(newLibrary);
     };
 
+    // Effect to log selected3DShape changes
+    useEffect(() => {
+        console.log('App: selected3DShape updated:', selected3DShape);
+    }, [selected3DShape]);
+
     interface ErrorDialogProps {
         isOpen: boolean;
         onClose: () => void;
@@ -272,8 +288,11 @@ const App: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Error</DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            Enter the URL of the Google Drive folder containing your SVG files and index.csv
+                        </DialogDescription>
                     </DialogHeader>
-                    <p>{message}</p>
+                    <p className="text-white">{message}</p>
                     <DialogFooter>
                         <Button onClick={onClose}>Close</Button>
                     </DialogFooter>
@@ -294,7 +313,7 @@ const App: React.FC = () => {
                 onAdd2DShape={add2DShape}
                 onRemove3DShape={remove3DShape}
                 onRemove2DShape={remove2DShape}
-                onSelect3DShape={setSelected3DShape}
+                onSelect3DShape={handleSelect3DShape}
                 onSetCanvasSize={setCanvasSize}
                 onUpdateSvgLibrary={updateSvgLibrary}
             />

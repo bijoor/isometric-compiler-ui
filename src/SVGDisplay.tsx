@@ -51,18 +51,20 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent, selected3DShape, on
   }, [svgContent, viewBox]);
 
   useEffect(() => {
-    if (svgRef.current && selected3DShape) {
+    if (svgRef.current) {
       const svg = svgRef.current;
-      const selectedElement = svg.getElementById(selected3DShape);
       
       // Remove highlight from all elements
       svg.querySelectorAll('.highlighted-shape').forEach(el => {
         el.classList.remove('highlighted-shape');
       });
 
-      // Add highlight to the selected element
-      if (selectedElement) {
-        selectedElement.classList.add('highlighted-shape');
+      // Add highlight to the selected element if there is one
+      if (selected3DShape) {
+        const selectedElement = svg.getElementById(selected3DShape);
+        if (selectedElement) {
+          selectedElement.classList.add('highlighted-shape');
+        }
       }
     }
   }, [selected3DShape, svgContent]);
@@ -157,7 +159,7 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({ svgContent, selected3DShape, on
       <style>
         {`
           .highlighted-shape {
-            outline: 1px dashed #007bff;
+            outline: 2px dashed #007bff;
             outline-offset: 2px;
           }
         `}
