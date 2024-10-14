@@ -36,9 +36,12 @@ const ToggleGroup = React.forwardRef<
           "flex-1 py-2 px-4 rounded text-sm font-medium transition-all duration-200",
           "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
           "border-2",
-          "radix-state-on:bg-blue-600 radix-state-on:text-white radix-state-on:border-white",
-          "radix-state-off:bg-gray-700 radix-state-off:text-gray-200 radix-state-off:border-gray-500",
-          "radix-state-off:hover:bg-gray-600 radix-state-off:hover:border-gray-400"
+          value === option.value
+            ? "bg-blue-600 text-white border-white shadow-inner"
+            : "bg-gray-700 text-gray-200 border-gray-500 hover:bg-gray-600 hover:border-gray-400",
+          value === option.value
+            ? "transform scale-105"
+            : "transform scale-100"
         )}
       >
         {option.label}
