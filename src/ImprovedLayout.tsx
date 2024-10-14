@@ -4,6 +4,7 @@ import SVGDisplay from './SVGDisplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/Dialog';
 import { Input } from './components/ui/Input';
 import { ToggleGroup, ToggleGroupOption } from './components/ui/ToggleGroup';
+import { Checkbox } from './components/ui/Checkbox';
 import { DiagramComponent, Shape } from './Types';
 import { loadShapesFromGoogleDrive } from './GoogleDriveUtils';
 
@@ -17,9 +18,15 @@ interface ImprovedLayoutProps {
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
-    onSelect3DShape: (id: string | null) => void;  
+    onSelect3DShape: (id: string | null) => void;
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
+    onDownloadSVG: () => void;
+    fileName: string;
+    setFileName: (name: string) => void;
+    clipToContents: boolean;
+    setClipToContents: (clip: boolean) => void;
+    onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
 }
 
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
@@ -34,7 +41,13 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onRemove2DShape,
     onSelect3DShape,
     onSetCanvasSize,
-    onUpdateSvgLibrary
+    onUpdateSvgLibrary,
+    onDownloadSVG,
+    fileName,
+    setFileName,
+    clipToContents,
+    setClipToContents,
+    onGetBoundingBox,
 }) => {
     const [activePanel, setActivePanel] = useState<'shapes' | 'composition' | 'settings'>('shapes');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -46,7 +59,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
         console.log('ImprovedLayout: Selecting 3D shape:', id);
         onSelect3DShape(id);
     }, [onSelect3DShape]);
-    
+
     const handleLoadFromGoogleDrive = async () => {
         setError(null);
         setLoadingProgress(null);
@@ -114,6 +127,10 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             canvasSize={canvasSize}
                             onSetCanvasSize={onSetCanvasSize}
                             onOpenGoogleDriveDialog={() => setIsDialogOpen(true)}
+                            fileName={fileName}
+                            setFileName={setFileName}
+                            clipToContents={clipToContents}
+                            setClipToContents={setClipToContents}
                         />
                     )}
                 </div>
@@ -126,6 +143,9 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     svgContent={composedSVG}
                     selected3DShape={selected3DShape}
                     onSelect3DShape={handleSelect3DShape}
+                    onDownloadSVG={onDownloadSVG}
+                    onGetBoundingBox={onGetBoundingBox}
+                    canvasSize={canvasSize}
                 />
             </div>
 
@@ -218,9 +238,9 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({ svgLibrary, onAdd3DShape, onA
                                 <tr key={shape.name}>
                                     <td>{shape.name}</td>
                                     <td className="text-right">
-                                        <Button 
+                                        <Button
                                             onClick={() => onAdd3DShape(shape.name, selectedPosition)}
-                                            disabled={shouldDisable3DShapeButtons()} 
+                                            disabled={shouldDisable3DShapeButtons()}
                                         >
                                             Add
                                         </Button>
@@ -329,12 +349,20 @@ interface SettingsPanelProps {
     canvasSize: { width: number; height: number };
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     onOpenGoogleDriveDialog: () => void;
+    fileName: string;
+    setFileName: (name: string) => void;
+    clipToContents: boolean;
+    setClipToContents: (clip: boolean) => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
     canvasSize,
     onSetCanvasSize,
     onOpenGoogleDriveDialog,
+    fileName,
+    setFileName,
+    clipToContents,
+    setClipToContents,
 }) => (
     <div className="flex flex-col h-full p-4">
         <h2 className="text-xl font-semibold mb-4">Settings</h2>
@@ -361,6 +389,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     />
                 </div>
             </div>
+        </div>
+
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Download Settings</h3>
+            <label className="block mb-2">File Name:</label>
+            <Input
+                type="text"
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                className="w-full bg-gray-700 text-white p-2 rounded"
+                placeholder="diagram.svg"
+            />
+        </div>
+        <div className="flex items-center">
+            <Checkbox
+                id="clip-to-contents"
+                checked={clipToContents}
+                onCheckedChange={(checked) => setClipToContents(checked as boolean)}
+                className="mr-2"
+            />
+            <label htmlFor="clip-to-contents">Clip SVG to contents</label>
         </div>
 
         <div>

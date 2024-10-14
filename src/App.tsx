@@ -4,6 +4,7 @@ import { Shape, Point, AttachmentPoint, Attached2DShape, DiagramComponent } from
 import ImprovedLayout from './ImprovedLayout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './components/ui/Dialog';
 import { Button } from './components/ui/Button';
+import { cleanupSVG, clipSVGToContents } from './lib/svgUtils';
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -13,6 +14,9 @@ const App: React.FC = () => {
     const [selected3DShape, setSelected3DShape] = useState<string | null>(null);
     const [newPosition, setNewPosition] = useState<'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left'>('top');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [fileName, setFileName] = useState('diagram.svg');
+    const [clipToContents, setClipToContents] = useState(true);
+    const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
 
     useEffect(() => {
         fetchSvgLibrary();
@@ -46,7 +50,6 @@ const App: React.FC = () => {
             // Check if this is the first shape or if there's a selected shape
             if (prevComponents.length === 0 || selected3DShape !== null) {
                 const newId = `shape-${Date.now()}`;
-                console.log(`Adding 3D shape relative to ${selected3DShape}. Current component count: ${prevComponents.length}`);
                 const newComponent: DiagramComponent = {
                     id: newId,
                     shape: shapeName,
@@ -194,12 +197,8 @@ const App: React.FC = () => {
 
     const compileDiagram = useCallback(() => {
         console.log('Compiling diagram...');
-        const svgNamespace = "http://www.w3.org/2000/svg";
 
-        const svgElement = document.createElementNS(svgNamespace, "svg");
-        svgElement.setAttribute("width", canvasSize.width.toString());
-        svgElement.setAttribute("height", canvasSize.height.toString());
-        svgElement.setAttribute("viewBox", `0 0 ${canvasSize.width} ${canvasSize.height}`);
+        let svgContent = '';
 
         const processedComponents: DiagramComponent[] = [];
 
@@ -253,15 +252,36 @@ const App: React.FC = () => {
                 }
             });
 
-            svgElement.appendChild(shape3DElement);
+            svgContent += shape3DElement.outerHTML;
             processedComponents.push(updatedComponent);
         });
 
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(svgElement);
-        setComposedSVG(svgString);
+        setComposedSVG(svgContent);
 
     }, [diagramComponents, canvasSize, svgLibrary]);
+
+    const handleDownloadSVG = useCallback(() => {
+        let svgToDownload: string;
+        if (clipToContents && boundingBox) {
+            svgToDownload = clipSVGToContents(composedSVG, boundingBox);
+        } else {
+            svgToDownload = cleanupSVG(`<svg xmlns="http://www.w3.org/2000/svg">${composedSVG}</svg>`);
+        }
+
+        const blob = new Blob([svgToDownload], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [composedSVG, fileName, clipToContents, boundingBox]);
+
+    const handleGetBoundingBox = useCallback((newBoundingBox: { x: number, y: number, width: number, height: number } | null) => {
+        setBoundingBox(newBoundingBox);
+    }, []);
 
     useEffect(() => {
         compileDiagram();
@@ -316,6 +336,12 @@ const App: React.FC = () => {
                 onSelect3DShape={handleSelect3DShape}
                 onSetCanvasSize={setCanvasSize}
                 onUpdateSvgLibrary={updateSvgLibrary}
+                onDownloadSVG={handleDownloadSVG}
+                fileName={fileName}
+                setFileName={setFileName}
+                clipToContents={clipToContents}
+                setClipToContents={setClipToContents}
+                onGetBoundingBox={handleGetBoundingBox}
             />
             <ErrorDialog
                 isOpen={errorMessage !== null}
