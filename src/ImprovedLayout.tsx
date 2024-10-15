@@ -27,6 +27,10 @@ interface ImprovedLayoutProps {
     clipToContents: boolean;
     setClipToContents: (clip: boolean) => void;
     onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
+    spreadsheetUrl: string;
+    setSpreadsheetUrl: (url: string) => void;
+    folderUrl: string;
+    setFolderUrl: (url: string) => void;
 }
 
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
@@ -48,10 +52,13 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     clipToContents,
     setClipToContents,
     onGetBoundingBox,
+    spreadsheetUrl,
+    setSpreadsheetUrl,
+    folderUrl,
+    setFolderUrl,
 }) => {
     const [activePanel, setActivePanel] = useState<'shapes' | 'composition' | 'settings'>('shapes');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [folderUrl, setFolderUrl] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
 
@@ -64,13 +71,20 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
         setError(null);
         setLoadingProgress(null);
         try {
-            const newLibrary = await loadShapesFromGoogleDrive(folderUrl, (progress) => {
+            if (!spreadsheetUrl || !folderUrl) {
+                throw new Error('Please provide both Spreadsheet URL and Folder URL in the settings.');
+            }
+            const newLibrary = await loadShapesFromGoogleDrive(spreadsheetUrl, folderUrl, (progress) => {
                 setLoadingProgress(progress);
             });
             onUpdateSvgLibrary(newLibrary);
             setIsDialogOpen(false);
         } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+            if (err instanceof Error) {
+                setError(`Error loading shapes: ${err.message}`);
+            } else {
+                setError('An unknown error occurred while loading shapes.');
+            }
         } finally {
             setLoadingProgress(null);
         }
@@ -131,6 +145,10 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             setFileName={setFileName}
                             clipToContents={clipToContents}
                             setClipToContents={setClipToContents}
+                            spreadsheetUrl={spreadsheetUrl}
+                            setSpreadsheetUrl={setSpreadsheetUrl}
+                            folderUrl={folderUrl}
+                            setFolderUrl={setFolderUrl}
                         />
                     )}
                 </div>
@@ -155,15 +173,9 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     <DialogHeader>
                         <DialogTitle className="text-white">Load Shapes from Google Drive</DialogTitle>
                         <DialogDescription className="text-gray-300">
-                            Enter the URL of the Google Drive folder containing your SVG files and index.csv
+                            Load shapes using the Spreadsheet and Folder URLs provided in the settings.
                         </DialogDescription>
                     </DialogHeader>
-                    <Input
-                        value={folderUrl}
-                        onChange={(e) => setFolderUrl(e.target.value)}
-                        placeholder="https://drive.google.com/drive/folders/..."
-                        className="bg-gray-700 text-white placeholder-gray-400"
-                    />
                     {error && <p className="text-red-400 mt-2">{error}</p>}
                     {loadingProgress && (
                         <div className="mt-4 text-white">
@@ -353,6 +365,10 @@ interface SettingsPanelProps {
     setFileName: (name: string) => void;
     clipToContents: boolean;
     setClipToContents: (clip: boolean) => void;
+    spreadsheetUrl: string;
+    setSpreadsheetUrl: (url: string) => void;
+    folderUrl: string;
+    setFolderUrl: (url: string) => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -363,6 +379,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setFileName,
     clipToContents,
     setClipToContents,
+    spreadsheetUrl,
+    setSpreadsheetUrl,
+    folderUrl,
+    setFolderUrl,
 }) => (
     <div className="flex flex-col h-full p-4">
         <h2 className="text-xl font-semibold mb-4">Settings</h2>
@@ -402,7 +422,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 placeholder="diagram.svg"
             />
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center mb-6">
             <Checkbox
                 id="clip-to-contents"
                 checked={clipToContents}
@@ -412,9 +432,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <label htmlFor="clip-to-contents">Clip SVG to contents</label>
         </div>
 
-        <div>
-            <h3 className="text-lg font-semibold mb-2">Shape Library</h3>
-            <Button onClick={onOpenGoogleDriveDialog} className="w-full mb-4">
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Google Drive Settings</h3>
+            <label className="block mb-2">Spreadsheet URL:</label>
+            <Input
+                type="text"
+                value={spreadsheetUrl}
+                onChange={(e) => setSpreadsheetUrl(e.target.value)}
+                className="w-full bg-gray-700 text-white p-2 rounded mb-2"
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+            />
+            <label className="block mb-2">Folder URL:</label>
+            <Input
+                type="text"
+                value={folderUrl}
+                onChange={(e) => setFolderUrl(e.target.value)}
+                className="w-full bg-gray-700 text-white p-2 rounded mb-2"
+                placeholder="https://drive.google.com/drive/folders/..."
+            />
+            <Button onClick={onOpenGoogleDriveDialog} className="w-full my-2">
                 Load Shapes from Google Drive
             </Button>
         </div>

@@ -14,9 +14,19 @@ const App: React.FC = () => {
     const [selected3DShape, setSelected3DShape] = useState<string | null>(null);
     const [newPosition, setNewPosition] = useState<'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left'>('top');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [fileName, setFileName] = useState('diagram.svg');
-    const [clipToContents, setClipToContents] = useState(true);
     const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+    const [fileName, setFileName] = useState(() => {
+        return localStorage.getItem('fileName') || 'diagram.svg';
+    });
+    const [clipToContents, setClipToContents] = useState(() => {
+        return localStorage.getItem('clipToContents') === 'true';
+    });
+    const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => {
+        return localStorage.getItem('spreadsheetUrl') || '';
+    });
+    const [folderUrl, setFolderUrl] = useState(() => {
+        return localStorage.getItem('folderUrl') || '';
+    });
 
     useEffect(() => {
         fetchSvgLibrary();
@@ -25,6 +35,27 @@ const App: React.FC = () => {
     useEffect(() => {
         compileDiagram();
     }, [diagramComponents, canvasSize]);
+
+    useEffect(() => {
+        localStorage.setItem('canvasSize', JSON.stringify(canvasSize));
+    }, [canvasSize]);
+
+    useEffect(() => {
+        localStorage.setItem('fileName', fileName);
+    }, [fileName]);
+
+    useEffect(() => {
+        localStorage.setItem('clipToContents', clipToContents.toString());
+    }, [clipToContents]);
+
+    useEffect(() => {
+        localStorage.setItem('spreadsheetUrl', spreadsheetUrl);
+    }, [spreadsheetUrl]);
+
+    useEffect(() => {
+        localStorage.setItem('folderUrl', folderUrl);
+    }, [folderUrl]);
+
 
     const fetchSvgLibrary = async () => {
         try {
@@ -302,6 +333,31 @@ const App: React.FC = () => {
         message: string;
     }
 
+    const handleSetCanvasSize = useCallback((newSize: { width: number; height: number }) => {
+        setCanvasSize(newSize);
+        localStorage.setItem('canvasSize', JSON.stringify(newSize));
+    }, []);
+
+    const handleSetFileName = useCallback((newFileName: string) => {
+        setFileName(newFileName);
+        localStorage.setItem('fileName', newFileName);
+    }, []);
+
+    const handleSetClipToContents = useCallback((newClipToContents: boolean) => {
+        setClipToContents(newClipToContents);
+        localStorage.setItem('clipToContents', newClipToContents.toString());
+    }, []);
+
+    const handleSetSpreadsheetUrl = useCallback((newUrl: string) => {
+        setSpreadsheetUrl(newUrl);
+        localStorage.setItem('spreadsheetUrl', newUrl);
+    }, []);
+
+    const handleSetFolderUrl = useCallback((newUrl: string) => {
+        setFolderUrl(newUrl);
+        localStorage.setItem('folderUrl', newUrl);
+    }, []);
+
     const ErrorDialog: React.FC<ErrorDialogProps> = ({ isOpen, onClose, message }) => {
         return (
             <Dialog open={isOpen} onOpenChange={onClose}>
@@ -334,14 +390,18 @@ const App: React.FC = () => {
                 onRemove3DShape={remove3DShape}
                 onRemove2DShape={remove2DShape}
                 onSelect3DShape={handleSelect3DShape}
-                onSetCanvasSize={setCanvasSize}
+                onSetCanvasSize={handleSetCanvasSize}
                 onUpdateSvgLibrary={updateSvgLibrary}
                 onDownloadSVG={handleDownloadSVG}
                 fileName={fileName}
-                setFileName={setFileName}
+                setFileName={handleSetFileName}
                 clipToContents={clipToContents}
-                setClipToContents={setClipToContents}
+                setClipToContents={handleSetClipToContents}
                 onGetBoundingBox={handleGetBoundingBox}
+                spreadsheetUrl={spreadsheetUrl}
+                setSpreadsheetUrl={handleSetSpreadsheetUrl}
+                folderUrl={folderUrl}
+                setFolderUrl={handleSetFolderUrl}
             />
             <ErrorDialog
                 isOpen={errorMessage !== null}
