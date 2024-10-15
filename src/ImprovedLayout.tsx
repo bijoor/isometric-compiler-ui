@@ -68,17 +68,23 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     }, [onSelect3DShape]);
 
     const handleLoadFromGoogleDrive = async () => {
+        if (!spreadsheetUrl || !folderUrl) {
+            setError('Please provide both Spreadsheet URL and Folder URL in the settings.');
+            setIsDialogOpen(true);
+            return;
+        }
+
         setError(null);
         setLoadingProgress(null);
+        setIsDialogOpen(true);
+
         try {
-            if (!spreadsheetUrl || !folderUrl) {
-                throw new Error('Please provide both Spreadsheet URL and Folder URL in the settings.');
-            }
             const newLibrary = await loadShapesFromGoogleDrive(spreadsheetUrl, folderUrl, (progress) => {
                 setLoadingProgress(progress);
             });
             onUpdateSvgLibrary(newLibrary);
-            setIsDialogOpen(false);
+            // Keep the dialog open for a moment to show completion
+            setTimeout(() => setIsDialogOpen(false), 1000);
         } catch (err) {
             if (err instanceof Error) {
                 setError(`Error loading shapes: ${err.message}`);
@@ -149,6 +155,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             setSpreadsheetUrl={setSpreadsheetUrl}
                             folderUrl={folderUrl}
                             setFolderUrl={setFolderUrl}
+                            onLoadShapesFromGoogleDrive={handleLoadFromGoogleDrive}
                         />
                     )}
                 </div>
@@ -171,12 +178,19 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="bg-gray-800 text-white">
                     <DialogHeader>
-                        <DialogTitle className="text-white">Load Shapes from Google Drive</DialogTitle>
+                        <DialogTitle className="text-white">Loading Shapes from Google Drive</DialogTitle>
                         <DialogDescription className="text-gray-300">
-                            Load shapes using the Spreadsheet and Folder URLs provided in the settings.
+                            Please wait while we load the shapes from your Google Drive.
                         </DialogDescription>
                     </DialogHeader>
-                    {error && <p className="text-red-400 mt-2">{error}</p>}
+                    {error && (
+                        <div className="mt-4">
+                            <p className="text-red-400">{error}</p>
+                            <Button onClick={() => setIsDialogOpen(false)} className="mt-2">
+                                Close
+                            </Button>
+                        </div>
+                    )}
                     {loadingProgress && (
                         <div className="mt-4 text-white">
                             <p>Loading: {loadingProgress.currentFile}</p>
@@ -189,15 +203,6 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             </div>
                         </div>
                     )}
-                    <DialogFooter>
-                        <Button
-                            onClick={handleLoadFromGoogleDrive}
-                            disabled={!!loadingProgress}
-                            className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600"
-                        >
-                            {loadingProgress ? 'Loading...' : 'Load Shapes'}
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
@@ -369,6 +374,7 @@ interface SettingsPanelProps {
     setSpreadsheetUrl: (url: string) => void;
     folderUrl: string;
     setFolderUrl: (url: string) => void;
+    onLoadShapesFromGoogleDrive: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -383,6 +389,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setSpreadsheetUrl,
     folderUrl,
     setFolderUrl,
+    onLoadShapesFromGoogleDrive,
 }) => (
     <div className="flex flex-col h-full p-4">
         <h2 className="text-xl font-semibold mb-4">Settings</h2>
@@ -451,7 +458,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 className="w-full bg-gray-700 text-white p-2 rounded mb-2"
                 placeholder="https://drive.google.com/drive/folders/..."
             />
-            <Button onClick={onOpenGoogleDriveDialog} className="w-full my-4">
+            <Button onClick={onLoadShapesFromGoogleDrive} className="w-full my-4">
                 Load Shapes from Google Drive
             </Button>
         </div>
