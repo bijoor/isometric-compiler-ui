@@ -433,7 +433,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Google Drive Settings</h3>
+            <h3 className="text-lg font-semibold mb-2">Shapes Library Settings</h3>
+            <p className="my-2 text-slate-500">Add the share url for the Google Spreadsheet and Google Drive Folder where you have saved your shapes library</p>
             <label className="block mb-2">Spreadsheet URL:</label>
             <Input
                 type="text"
@@ -442,7 +443,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 className="w-full bg-gray-700 text-white p-2 rounded mb-2"
                 placeholder="https://docs.google.com/spreadsheets/d/..."
             />
-            <label className="block mb-2">Folder URL:</label>
+            <label className="block my-2">Folder URL:</label>
             <Input
                 type="text"
                 value={folderUrl}
@@ -450,7 +451,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 className="w-full bg-gray-700 text-white p-2 rounded mb-2"
                 placeholder="https://drive.google.com/drive/folders/..."
             />
-            <Button onClick={onOpenGoogleDriveDialog} className="w-full my-2">
+            <Button onClick={onOpenGoogleDriveDialog} className="w-full my-4">
                 Load Shapes from Google Drive
             </Button>
         </div>
