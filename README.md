@@ -17,24 +17,6 @@ The SVG Isometric Shapes Compiler is a powerful web application that allows user
 - Customizable canvas size
 - Zoom and pan functionality for detailed editing
 
-## Getting Started
-
-### Creating a Library of SVG Shapes
-
-The application uses two types of shapes:
-
-1. **3D Shapes**: These are the base shapes that form the main structure of your isometric diagram. They typically have three faces: top, front, and side.
-
-2. **2D Shapes**: These are flat shapes that can be attached to the faces of 3D shapes to add details or decorations.
-
-To create a library of shapes:
-
-1. Create SVG files for each shape you want to include in your library.
-2. For 3D shapes, ensure that the SVG includes elements with IDs "top-face", "front-face", and "side-face".
-3. For 2D shapes, include an element with ID "attach-point" to specify where it should connect to a 3D shape.
-4. Create a CSV file with columns: name, svgFile, type (3D or 2D), and attachTo (for 2D shapes, specifying which face they can attach to).
-5. Upload your SVG files and CSV to a Google Drive folder.
-
 ### Using the Application
 
 ![Screenshot of the main application interface](./images/ui-shapes.png)
@@ -91,6 +73,88 @@ The Settings panel allows you to configure various aspects of your diagram and t
 - **Load Shapes from Google Drive**: Click this button to load your custom shape library from the specified Google Drive locations.
 
 The Settings panel provides crucial functionality for managing your diagrams and customizing the application to suit your needs. It allows you to control the canvas size, manage file operations, and set up your custom shape library, making it an essential part of the SVG Isometric Shapes Compiler workflow.
+
+## Creating Shapes for the Library
+
+### 3D Shapes
+
+3D shapes form the base structure of your isometric diagrams.
+
+#### Creating a 3D Shape
+
+1. Design your shape in an SVG editor (e.g., Inkscape, Adobe Illustrator).
+2. Add basic attachment points for each face where other 3D shapes can connect:
+   - Use the format: `id="attach-[position]"`
+   - Standard positions: `top`, `front-left`, `front-right`, `side-left`, `side-right`
+   - Example: `<circle id="attach-top" cx="50" cy="50" r="2" />`
+3. Add optional named attachment points for more specific connections:
+   - Format: `id="attach-[position]-[name]"`
+   - Example: `<circle id="attach-top-center" cx="50" cy="50" r="2" />`
+4. Add special attachment points for 2D shapes:
+   - Format: `id="attach-[name]"`
+   - Example: `<circle id="attach-screen" cx="100" cy="75" r="2" />`
+
+![3D Shape Example Image with various attachment points](./images/3d-attachment-points.png)
+
+### 2D Shapes
+
+2D shapes are flat designs that can be attached to 3D shapes to add details or decorations.
+
+#### Creating a 2D Shape
+
+1. Design your 2D shape in an SVG editor.
+2. Add a single attachment point:
+   - Use `id="attach-point"` for the 2D shape's attachment point.
+   - Example: `<circle id="attach-point" cx="0" cy="0" r="2" />`
+3. Design the shape considering the perspective and shear for the face it will attach to (top, front-left, or front-right).
+
+![2D Shape Example Image with attach-point](./images/2d-attachment-points.png)
+
+### Using Attachment Points in Composition
+
+1. For 3D shapes:
+   - The application uses the attachment points to determine valid positions for other 3D shapes.
+   - You can select which attachment point to use when adding a new 3D shape to your composition.
+
+2. For 2D shapes:
+   - 2D shapes can only be attached to specified positions on 3D shapes.
+   - The application aligns the 2D shape's `attach-point` with the selected attachment point on the 3D shape.
+   - 2D shapes can use optional named attachment points if available on the specified position.
+   - Special attachment points (e.g., `attach-screen`) can be used for specific 2D shape placements.
+
+![Composition Example](./images/ui-non-standard-attachments.png)
+
+## Creating the Shape Library Index
+
+To make your shapes available in the application, you need to create an index spreadsheet.
+
+### Spreadsheet Structure
+
+Create a Google Sheets document with the following columns:
+
+1. `name`: A unique identifier for the shape
+2. `svgFile`: The filename of the SVG file (must match the file in your Google Drive folder)
+3. `type`: Either "3D" or "2D"
+4. `attachTo`: For 2D shapes, specify where it can attach ("top", "front-left", "front-right", or a special attachment point like "screen")
+
+### Example Index Spreadsheet
+
+| name          | svgFile           | type | attachTo    |
+|---------------|-------------------|------|-------------|
+| microservice  | microservice.svg  | 3D   |             |
+| monitor       | monitor.svg       | 3D   |             |
+| process       | process.svg       | 2D   | top         |
+| grill-left    | grill-left.svg    | 2D   | front-left  |
+| bits-on-screen| bits-on-screen.svg| 2D   | screen      |
+
+### Best Practices
+
+1. Consistency: Keep your attachment points and naming conventions consistent across shapes.
+2. Testing: Test your shapes in the application to ensure they behave as expected in compositions.
+3. Optimization: Ensure your SVG files are optimized and don't contain unnecessary elements or layers.
+4. Documentation: Consider adding comments in your SVG files to document special attachment points.
+
+By following these guidelines, you can create a rich library of 3D and 2D shapes that can be combined to create complex and detailed isometric diagrams with precise control over shape placement and connections.
 
 ## Contributing
 
