@@ -4,7 +4,7 @@
 
 The SVG Isometric Shapes Compiler is a powerful web application that allows users to create complex isometric diagrams by combining 3D and 2D SVG shapes. This tool is perfect for designers, architects, and anyone who needs to create detailed isometric illustrations for presentations, documentation, or visual aids.
 
-[Try the demo online](https://bijoor.github.io/isometric-diagram-builder/)
+[Try the demo online](https://bijoor.github.io/isometric-compiler-ui/)
 
 ## Features
 
