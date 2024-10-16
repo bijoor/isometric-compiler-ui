@@ -1,10 +1,128 @@
-import { DiagramComponent, Point, AttachmentPoint, Shape } from './Types';
+import { DiagramComponent, Point, AttachmentPoint, Shape } from '../Types';
 
 declare global {
     interface Window {
         SVGElement: typeof SVGElement;
     }
 }
+
+export const add3DShape = (
+    diagramComponents: DiagramComponent[],
+    svgLibrary: Shape[],
+    shapeName: string,
+    position: string,
+    attachmentPoint: string | null,
+    selected3DShape: string | null
+): { updatedComponents: DiagramComponent[], newComponent: DiagramComponent | null } => {
+    const newId = `shape-${Date.now()}`;
+    
+    if (diagramComponents.length === 0 || selected3DShape !== null) {
+        const shape = svgLibrary.find(s => s.name === shapeName);
+        if (!shape) {
+            console.error(`Shape ${shapeName} not found in library`);
+            return { updatedComponents: diagramComponents, newComponent: null };
+        }
+
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(shape.svgContent, 'image/svg+xml');
+        const svgElement = svgDoc.documentElement;
+
+        if (!(svgElement instanceof SVGElement)) {
+            console.error('Failed to parse SVG content');
+            return { updatedComponents: diagramComponents, newComponent: null };
+        }
+
+        const attachmentPoints = extractAttachmentPoints(svgElement);
+
+        const newComponent: DiagramComponent = {
+            id: newId,
+            shape: shapeName,
+            position: (attachmentPoint || position) as DiagramComponent['position'],
+            relativeToId: diagramComponents.length === 0 ? null : selected3DShape,
+            attached2DShapes: [],
+            attachmentPoints: attachmentPoints,
+            absolutePosition: { x: 0, y: 0 }
+        };
+
+        const updatedComponents = [...diagramComponents, newComponent];
+
+        return { 
+            updatedComponents,
+            newComponent
+        };
+    } else {
+        console.error('Please select a 3D shape before adding a new one.');
+        return { updatedComponents: diagramComponents, newComponent: null };
+    }
+};
+
+export const add2DShape = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null,
+    shapeName: string,
+    attachTo: string
+): DiagramComponent[] => {
+    if (selected3DShape !== null) {
+        return diagramComponents.map(component => {
+            if (component.id === selected3DShape) {
+                return {
+                    ...component,
+                    attached2DShapes: [...component.attached2DShapes, { name: shapeName, attachedTo: attachTo }]
+                };
+            }
+            return component;
+        });
+    } else {
+        console.error('Please select a 3D shape to attach this 2D shape to.');
+        return diagramComponents;
+    }
+};
+
+export const remove3DShape = (
+    diagramComponents: DiagramComponent[],
+    id: string
+): DiagramComponent[] => {
+    return diagramComponents.filter(component => component.id !== id);
+};
+
+export const remove2DShape = (
+    diagramComponents: DiagramComponent[],
+    parentId: string,
+    shapeIndex: number
+): DiagramComponent[] => {
+    return diagramComponents.map(component => {
+        if (component.id === parentId) {
+            return {
+                ...component,
+                attached2DShapes: component.attached2DShapes.filter((_, i) => i !== shapeIndex)
+            };
+        }
+        return component;
+    });
+};
+
+export const getSelected3DShape = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null
+): DiagramComponent | null => {
+    if (selected3DShape === null) {
+        return null;
+    }
+    return diagramComponents.find(component => component.id === selected3DShape) || null;
+};
+
+export const getAvailableAttachmentPoints = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null
+): string[] => {
+    const selectedComponent = getSelected3DShape(diagramComponents, selected3DShape);
+    if (selectedComponent) {
+        return updateAvailableAttachmentPoints(selectedComponent);
+    }
+    return [];
+};
+
+// Functions from DiagramUtils
 
 export const extractAttachmentPoints = (svgElement: SVGElement): AttachmentPoint[] => {
     const attachmentPoints: AttachmentPoint[] = [];
@@ -32,7 +150,6 @@ export const getAttachmentPoint = (component: DiagramComponent, pointName: strin
     return point ? { x: point.x, y: point.y } : null;
 };
 
-
 export const calculateAbsolutePosition = (
     component: DiagramComponent,
     referenceComponent: DiagramComponent | null,
@@ -51,7 +168,6 @@ export const calculateAbsolutePosition = (
             ) : (
                 attachmentPoint === 'left' ? 'front-right' : 'front-left'
             )
-
         )
     );
 

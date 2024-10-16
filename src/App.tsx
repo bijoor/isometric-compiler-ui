@@ -3,8 +3,8 @@ import { config } from './config';
 import { Shape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
 import { calculateBoundingBox, clipSVGToContents } from './lib/svgUtils';
-import { extractAttachmentPoints, compileDiagram, updateAvailableAttachmentPoints } from './DiagramUtils';
-import { loadShapesFromGoogleDrive } from './GoogleDriveUtils';
+import { loadShapesFromGoogleDrive } from './lib/googleDriveLib';
+import * as diagramComponentsLib from './lib/diagramComponentsLib';
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -34,7 +34,7 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        const compiledSVG = compileDiagram(diagramComponents, canvasSize, svgLibrary);
+        const compiledSVG = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary);
         setComposedSVG(compiledSVG);
     }, [diagramComponents, canvasSize, svgLibrary]);
 
@@ -75,116 +75,52 @@ const App: React.FC = () => {
     // handle select 3D shape from Composition panel or SVG diagram
     const handleSelect3DShape = useCallback((id: string | null) => {
         setSelected3DShape(id);
-        console.log(`handleSelect3DShape ${id}`);
-        if (id === null) {
-            setAvailableAttachmentPoints([]);
-        } else {
-            const selectedComponents = diagramComponents.filter(component => component.id === id);
-            if (selectedComponents.length>0) {
-                const updatedAttachmentPoints = updateAvailableAttachmentPoints(selectedComponents[0])
+        if (id) {
+            const selectedComponent = diagramComponentsLib.getSelected3DShape(diagramComponents, id);
+            if (selectedComponent) {
+                const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(selectedComponent);
                 setAvailableAttachmentPoints(updatedAttachmentPoints);
             }
+        } else {
+            setAvailableAttachmentPoints([]);
         }
     }, [diagramComponents]);
 
     const add3DShape = useCallback((shapeName: string, position: string, attachmentPoint: string | null) => {
-        const newId = `shape-${Date.now()}`;
-        setDiagramComponents(prevComponents => {
-            if (prevComponents.length === 0 || selected3DShape !== null) {
-                const shape = svgLibrary.find(s => s.name === shapeName);
-                if (!shape) {
-                    console.error(`Shape ${shapeName} not found in library`);
-                    return prevComponents;
-                }
-
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(shape.svgContent, 'image/svg+xml');
-                const svgElement = svgDoc.documentElement;
-
-                // Ensure svgElement is of type SVGElement
-                if (!(svgElement instanceof SVGElement)) {
-                    console.error('Failed to parse SVG content');
-                    return prevComponents;
-                }
-
-                const attachmentPoints = extractAttachmentPoints(svgElement);
-
-                const newComponent: DiagramComponent = {
-                    id: newId,
-                    shape: shapeName,
-                    position: (attachmentPoint || position) as DiagramComponent['position'], // Type assertion
-                    relativeToId: prevComponents.length === 0 ? null : selected3DShape,
-                    attached2DShapes: [],
-                    attachmentPoints: attachmentPoints,
-                    absolutePosition: { x: 0, y: 0 }
-                };
-
-                setSelected3DShape(newId);
-
-                const updatedAttachmentPoints = updateAvailableAttachmentPoints(newComponent);
-                setAvailableAttachmentPoints(updatedAttachmentPoints);
-                console.log('App: Selecting 3D shape:', newId);
-                console.log(updatedAttachmentPoints);
+        const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, position, attachmentPoint, selected3DShape);
         
-                return [...prevComponents, newComponent];
-            } else {
-                setErrorMessage('Please select a 3D shape before adding a new one.');
-                return prevComponents;
-            }
-        });
-
-
-    }, [selected3DShape, handleSelect3DShape, svgLibrary]);
+        if (result.newComponent) {
+            setDiagramComponents(result.updatedComponents);
+            setSelected3DShape(result.newComponent.id);
+            const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.newComponent);
+            setAvailableAttachmentPoints(updatedAttachmentPoints);
+        } else {
+            console.error('Failed to add new 3D shape');
+        }
+    }, [diagramComponents, svgLibrary, selected3DShape]);
 
     const add2DShape = useCallback((shapeName: string, attachTo: string) => {
-        if (selected3DShape !== null) {
-            setDiagramComponents(prevComponents => {
-                return prevComponents.map(component => {
-                    if (component.id === selected3DShape) {
-                        return {
-                            ...component,
-                            attached2DShapes: [...component.attached2DShapes, { name: shapeName, attachedTo: attachTo }]
-                        };
-                    }
-                    return component;
-                });
-            });
-        } else {
-            setErrorMessage('Please select a 3D shape to attach this 2D shape to.');
-        }
-    }, [selected3DShape]);
+        const updatedComponents = diagramComponentsLib.add2DShape(diagramComponents, selected3DShape, shapeName, attachTo);
+        setDiagramComponents(updatedComponents);
+    }, [diagramComponents, selected3DShape]);
 
     const remove3DShape = useCallback((id: string) => {
-        setDiagramComponents(prevComponents => {
-            const updatedComponents = prevComponents.filter(component => component.id !== id);
+        const updatedComponents = diagramComponentsLib.remove3DShape(diagramComponents, id);
+        setDiagramComponents(updatedComponents);
 
-            if (selected3DShape === id) {
-                console.log("App: Removing currently selected 3D shape");
-                if (updatedComponents.length > 0) {
-                    handleSelect3DShape(updatedComponents[0].id);
-                } else {
-                    handleSelect3DShape(null);
-                }
+        if (selected3DShape === id) {
+            if (updatedComponents.length > 0) {
+                handleSelect3DShape(updatedComponents[0].id);
+            } else {
+                handleSelect3DShape(null);
             }
-
-            return updatedComponents;
-        });
-
-    }, [selected3DShape, handleSelect3DShape]);
+        }
+    }, [diagramComponents, selected3DShape, handleSelect3DShape]);
 
     const remove2DShape = useCallback((parentId: string, shapeIndex: number) => {
-        setDiagramComponents(prevComponents => {
-            return prevComponents.map(component => {
-                if (component.id === parentId) {
-                    return {
-                        ...component,
-                        attached2DShapes: component.attached2DShapes.filter((_, i) => i !== shapeIndex)
-                    };
-                }
-                return component;
-            });
-        });
-    }, []);
+        const updatedComponents = diagramComponentsLib.remove2DShape(diagramComponents, parentId, shapeIndex);
+        setDiagramComponents(updatedComponents);
+    }, [diagramComponents]);
 
     const handleSetCanvasSize = useCallback((newSize: { width: number; height: number }) => {
         setCanvasSize(newSize);

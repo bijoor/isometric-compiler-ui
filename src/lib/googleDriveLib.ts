@@ -1,5 +1,5 @@
-import { config } from './config';
-import { Shape } from './Types';
+import { config } from '../config';
+import { Shape } from '../Types';
 
 declare global {
     interface Window {
