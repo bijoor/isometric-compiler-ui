@@ -5,10 +5,14 @@ import { cn } from "@/lib/utils"
 
 const Accordion = AccordionPrimitive.Root
 
+interface AccordionItemProps extends React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item> {
+  fixedContentHeight?: string | number;
+}
+
 const AccordionItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
->(({ className, ...props }, ref) => (
+  AccordionItemProps
+>(({ className, fixedContentHeight, ...props }, ref) => (
   <AccordionPrimitive.Item
     ref={ref}
     className={cn("border-b", className)}
@@ -37,19 +41,24 @@ const AccordionTrigger = React.forwardRef<
 ))
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
 
+interface AccordionContentProps extends React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content> {
+  fixedHeight?: string | number;
+}
+
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  AccordionContentProps
+>(({ className, children, fixedHeight, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
     className={cn(
       "overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down",
       className
     )}
+    style={{ height: fixedHeight }}
     {...props}
   >
-    <div className="flex-grow">{children}</div>
+    <div className="h-full overflow-auto">{children}</div>
   </AccordionPrimitive.Content>
 ))
 AccordionContent.displayName = AccordionPrimitive.Content.displayName

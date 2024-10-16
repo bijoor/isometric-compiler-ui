@@ -168,7 +168,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
                 <div className="flex flex-col h-full">
                     <AccordionItem value="3d-shapes" className="flex flex-col min-h-0 border-b border-gray-700">
                         <AccordionTrigger className="p-2 text-xl font-semibold">3D Shapes</AccordionTrigger>
-                        <AccordionContent className="flex-grow overflow-auto">
+                        <AccordionContent className="flex-grow overflow-auto" fixedHeight="calc(60vh - 2rem)">
                             <div className="p-2">
                                 {render3DShapesContent()}
                             </div>
@@ -176,7 +176,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
                     </AccordionItem>
                     <AccordionItem value="2d-shapes" className="flex flex-col min-h-0 border-b border-gray-700">
                         <AccordionTrigger className="p-2 text-xl font-semibold">2D Shapes</AccordionTrigger>
-                        <AccordionContent className="flex-grow overflow-auto">
+                        <AccordionContent className="flex-grow overflow-auto" fixedHeight="calc(40vh - 2rem)">
                             <div className="p-2">
                                 {render2DShapesContent()}
                             </div>
