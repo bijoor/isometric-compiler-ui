@@ -278,3 +278,55 @@ export const updateAvailableAttachmentPoints = (
 
     return ['none', ...new Set(points)];
 };
+
+// Functions to Save and Load a composition in Diagram Components
+
+
+export const serializeDiagramComponents = (
+    diagramComponents: DiagramComponent[]
+): string => {
+    return JSON.stringify(diagramComponents, null, 2);
+};
+
+export const deserializeDiagramComponents = (
+    serializedData: string
+): DiagramComponent[] => {
+    const parsedData = JSON.parse(serializedData);
+    
+    if (!validateLoadedFile(parsedData)) {
+        throw new Error('Invalid diagram components structure');
+    }
+
+    return parsedData as DiagramComponent[];
+};
+
+// Function to validate the structure of a loaded file
+export const validateLoadedFile = (
+    data: any
+): boolean => {
+    if (!Array.isArray(data)) return false;
+
+    // Check if diagramComponents have the correct structure
+    for (const component of data) {
+        if (!component.id || !component.shape || !component.position) return false;
+        if (!Array.isArray(component.attached2DShapes)) return false;
+        if (!Array.isArray(component.attachmentPoints)) return false;
+        
+        // Validate attached2DShapes
+        for (const shape of component.attached2DShapes) {
+            if (typeof shape.name !== 'string' || typeof shape.attachedTo !== 'string') return false;
+        }
+        
+        // Validate attachmentPoints
+        for (const point of component.attachmentPoints) {
+            if (typeof point.name !== 'string' || typeof point.x !== 'number' || typeof point.y !== 'number') return false;
+        }
+        
+        // Validate absolutePosition
+        if (typeof component.absolutePosition !== 'object' || 
+            typeof component.absolutePosition.x !== 'number' || 
+            typeof component.absolutePosition.y !== 'number') return false;
+    }
+
+    return true;
+};

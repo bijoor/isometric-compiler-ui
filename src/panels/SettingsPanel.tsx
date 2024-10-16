@@ -15,6 +15,11 @@ interface SettingsPanelProps {
     folderUrl: string;
     setFolderUrl: (url: string) => void;
     onLoadShapesFromGoogleDrive: () => void;
+    onSaveDiagram: () => void;
+    onLoadDiagram: () => void;
+    folderPath: string;
+    setFolderPath: (path: string) => void;
+    onDownloadSVG: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -29,8 +34,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     folderUrl,
     setFolderUrl,
     onLoadShapesFromGoogleDrive,
+    onSaveDiagram,
+    onLoadDiagram,
+    folderPath,
+    setFolderPath,
+    onDownloadSVG,
 }) => (
-    <div className="flex flex-col h-full p-2">
+    <div className="flex flex-col h-full p-4 overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4">Settings</h2>
 
         <div className="mb-6">
@@ -58,29 +68,50 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Download Settings</h3>
+            <h3 className="text-lg font-semibold mb-2">Diagram Settings</h3>
             <label className="block mb-2">File Name:</label>
             <Input
                 type="text"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                className="w-full bg-gray-700 text-white p-2 rounded"
+                className="w-full bg-gray-700 text-white p-2 rounded mb-2"
                 placeholder="diagram.svg"
             />
-        </div>
-        <div className="flex items-center mb-6">
-            <Checkbox
-                id="clip-to-contents"
-                checked={clipToContents}
-                onCheckedChange={(checked) => setClipToContents(checked as boolean)}
-                className="mr-2"
+            <label className="block mb-2">Folder Path:</label>
+            <Input
+                type="text"
+                value={folderPath}
+                onChange={(e) => setFolderPath(e.target.value)}
+                className="w-full bg-gray-700 text-white p-2 rounded mb-2"
+                placeholder="My Diagrams"
             />
-            <label htmlFor="clip-to-contents">Clip SVG to contents</label>
+            <p className="text-sm text-gray-400 mb-2">
+                Note: This folder path will be used for both saving and loading diagrams.
+            </p>
+            <div className="flex items-center mb-4">
+                <Checkbox
+                    id="clip-to-contents"
+                    checked={clipToContents}
+                    onCheckedChange={(checked) => setClipToContents(checked as boolean)}
+                    className="mr-2"
+                />
+                <label htmlFor="clip-to-contents">Clip SVG to contents</label>
+            </div>
+            <div className="flex space-x-2">
+                <Button onClick={onSaveDiagram} className="flex-1">
+                    Save Diagram
+                </Button>
+                <Button onClick={onLoadDiagram} className="flex-1">
+                    Load Diagram
+                </Button>
+                <Button onClick={onDownloadSVG} className="flex-1">
+                    Download SVG
+                </Button>
+            </div>
         </div>
 
         <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Shapes Library Settings</h3>
-            <p className="my-2 text-slate-500">Add the share url for the Google Spreadsheet and Google Drive Folder where you have saved your shapes library</p>
             <label className="block mb-2">Spreadsheet URL:</label>
             <Input
                 type="text"
@@ -97,7 +128,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 className="w-full bg-gray-700 text-white p-2 rounded mb-2"
                 placeholder="https://drive.google.com/drive/folders/..."
             />
-            <Button onClick={onLoadShapesFromGoogleDrive} className="w-full my-4">
+            <Button onClick={onLoadShapesFromGoogleDrive} className="w-full mt-2">
                 Load Shapes from Google Drive
             </Button>
         </div>

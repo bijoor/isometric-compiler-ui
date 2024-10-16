@@ -34,6 +34,10 @@ interface ImprovedLayoutProps {
     onLoadShapesFromGoogleDrive: () => void;
     errorMessage: string | null;
     setErrorMessage: (message: string | null) => void;
+    onSaveDiagram: () => Promise<void>;
+    onLoadDiagram: () => Promise<void>;
+    folderPath: string;
+    setFolderPath: (path: string) => void;
 }
 
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
@@ -63,10 +67,16 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onLoadShapesFromGoogleDrive,
     errorMessage,
     setErrorMessage,
+    onSaveDiagram,
+    onLoadDiagram,
+    folderPath,
+    setFolderPath,
 }) => {
     const [activePanel, setActivePanel] = useState<'shapes' | 'composition' | 'settings'>('shapes');
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isLoadingDialogOpen, setIsLoadingDialogOpen] = useState(false);
+    const [isSaveLoadDialogOpen, setIsSaveLoadDialogOpen] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
+    const [saveLoadMessage, setSaveLoadMessage] = useState<string | null>(null);
 
     const handleSelect3DShape = useCallback((id: string | null) => {
         console.log('ImprovedLayout: Selecting 3D shape:', id);
@@ -76,17 +86,17 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const handleLoadFromGoogleDrive = async () => {
         if (!spreadsheetUrl || !folderUrl) {
             setErrorMessage('Please provide both Spreadsheet URL and Folder URL in the settings.');
-            setIsDialogOpen(true);
+            setIsLoadingDialogOpen(true);
             return;
         }
 
         setErrorMessage(null);
         setLoadingProgress(null);
-        setIsDialogOpen(true);
+        setIsLoadingDialogOpen(true);
 
         try {
             await onLoadShapesFromGoogleDrive();
-            setTimeout(() => setIsDialogOpen(false), 1000);
+            setTimeout(() => setIsLoadingDialogOpen(false), 1000);
         } catch (err) {
             if (err instanceof Error) {
                 setErrorMessage(`Error loading shapes: ${err.message}`);
@@ -95,6 +105,32 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
             }
         } finally {
             setLoadingProgress(null);
+        }
+    };
+
+    const handleSaveDiagram = async () => {
+        setIsSaveLoadDialogOpen(true);
+        setSaveLoadMessage('Saving diagram...');
+        try {
+            await onSaveDiagram();
+            setSaveLoadMessage('Diagram saved successfully!');
+        } catch (error) {
+            setSaveLoadMessage('Failed to save diagram. Please try again.');
+        } finally {
+            setTimeout(() => setIsSaveLoadDialogOpen(false), 5000);
+        }
+    };
+
+    const handleLoadDiagram = async () => {
+        setIsSaveLoadDialogOpen(true);
+        setSaveLoadMessage('Loading diagram...');
+        try {
+            await onLoadDiagram();
+            setSaveLoadMessage('Diagram loaded successfully!');
+        } catch (error) {
+            setSaveLoadMessage('Failed to load diagram. Please check the file and try again.');
+        } finally {
+            setTimeout(() => setIsSaveLoadDialogOpen(false), 5000);
         }
     };
 
@@ -158,6 +194,11 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             folderUrl={folderUrl}
                             setFolderUrl={setFolderUrl}
                             onLoadShapesFromGoogleDrive={handleLoadFromGoogleDrive}
+                            onSaveDiagram={handleSaveDiagram}
+                            onLoadDiagram={handleLoadDiagram}
+                            folderPath={folderPath}
+                            setFolderPath={setFolderPath}
+                            onDownloadSVG={onDownloadSVG}
                         />
                     )}
                 </div>
@@ -170,14 +211,13 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     svgContent={composedSVG}
                     selected3DShape={selected3DShape}
                     onSelect3DShape={handleSelect3DShape}
-                    onDownloadSVG={onDownloadSVG}
                     onGetBoundingBox={onGetBoundingBox}
                     canvasSize={canvasSize}
                 />
             </div>
 
             {/* Google Drive Folder URL Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isLoadingDialogOpen} onOpenChange={setIsLoadingDialogOpen}>
                 <DialogContent className="bg-gray-800 text-white">
                     <DialogHeader>
                         <DialogTitle className="text-white">Loading Shapes from Google Drive</DialogTitle>
@@ -188,7 +228,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     {errorMessage && (
                         <div className="mt-4">
                             <p className="text-red-400">{errorMessage}</p>
-                            <Button onClick={() => setIsDialogOpen(false)} className="mt-2">
+                            <Button onClick={() => setIsLoadingDialogOpen(false)} className="mt-2">
                                 Close
                             </Button>
                         </div>
@@ -205,6 +245,18 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             </div>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Save/Load Diagram Dialog */}
+            <Dialog open={isSaveLoadDialogOpen} onOpenChange={setIsSaveLoadDialogOpen}>
+                <DialogContent className="bg-gray-800 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Diagram Operation</DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            {saveLoadMessage}
+                        </DialogDescription>
+                    </DialogHeader>
                 </DialogContent>
             </Dialog>
         </div>

@@ -12,13 +12,11 @@ const { CLIENT_ID, API_KEY, SCOPES } = config.googleKeys;
 
 let tokenClient: any;
 let accessToken: string | null = null;
+let tokenExpirationTime: number | null = null;
 
-const REQUIRED_HEADERS = ['name', 'type', 'attachTo', 'svgFile'];
+const TOKEN_EXPIRATION_BUFFER = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-const validateHeaders = (headers: string[]): string[] => {
-    const missingHeaders = REQUIRED_HEADERS.filter(header => !headers.includes(header));
-    return missingHeaders;
-};
+// Functions to handle API initiatlization and authentication
 
 const loadGoogleApiScript = (): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -61,33 +59,56 @@ const initializeTokenClient = () => {
                 throw (response);
             }
             accessToken = response.access_token;
+            tokenExpirationTime = Date.now() + response.expires_in * 1000;
         },
     });
 };
 
+const isTokenValid = (): boolean => {
+    return !!accessToken && !!tokenExpirationTime && Date.now() < tokenExpirationTime - TOKEN_EXPIRATION_BUFFER;
+};
+
 const authenticateUser = async (): Promise<void> => {
+    if (isTokenValid()) {
+        return;
+    }
+
     if (!tokenClient) {
         await loadGoogleAccountsScript();
         initializeTokenClient();
     }
-    if (!accessToken) {
-        return new Promise<void>((resolve, reject) => {
-            try {
-                tokenClient.callback = (response: any) => {
-                    if (response.error !== undefined) {
-                        reject(response);
-                    } else {
-                        accessToken = response.access_token;
-                        resolve();
-                    }
-                };
+
+    return new Promise<void>((resolve, reject) => {
+        try {
+            tokenClient.callback = (response: any) => {
+                if (response.error !== undefined) {
+                    reject(response);
+                } else {
+                    accessToken = response.access_token;
+                    tokenExpirationTime = Date.now() + response.expires_in * 1000;
+                    resolve();
+                }
+            };
+            if (accessToken) {
+                tokenClient.requestAccessToken({ prompt: '' });
+            } else {
                 tokenClient.requestAccessToken({ prompt: 'consent' });
-            } catch (err) {
-                console.error(err);
-                reject(new Error('Error during authentication'));
             }
-        });
-    }
+        } catch (err) {
+            console.error(err);
+            reject(new Error('Error during authentication'));
+        }
+    });
+};
+
+// Functions to load SVG Library from Google Drive
+
+// headers required in the index CSV spreadsheet
+const REQUIRED_HEADERS = ['name', 'type', 'attachTo', 'svgFile'];
+
+const validateHeaders = (headers: string[]): string[] => {
+    const missingHeaders = REQUIRED_HEADERS.filter(header => !headers.includes(header));
+    return missingHeaders;
 };
 
 const getSpreadsheetId = (spreadsheetUrl: string): string | null => {
@@ -118,7 +139,7 @@ interface LoadProgress {
     totalFiles: number;
 }
 
-const loadShapesFromGoogleDrive = async (
+export const loadShapesFromGoogleDrive = async (
     spreadsheetUrl: string,
     folderUrl: string,
     onProgress: (progress: LoadProgress) => void
@@ -221,4 +242,202 @@ const loadShapesFromGoogleDrive = async (
     }
 };
 
-export { loadShapesFromGoogleDrive };
+// Functions to save and load diagram JSON files in Google Drive
+
+export const saveFileToDrive = async (fileName: string, content: string, folderPath: string): Promise<void> => {
+    try {
+        await authenticateUser();
+
+        // Get or create the folder
+        const folderId = await getOrCreateFolder(folderPath);
+
+        // Check if file already exists in the folder
+        const existingFile = await searchForFile(fileName, folderId);
+
+        if (existingFile) {
+            // Update existing file
+            await updateFile(existingFile.id, content);
+        } else {
+            // Create new file in the folder
+            await createFile(fileName, content, folderId);
+        }
+    } catch (error) {
+        console.error('Error saving file to Google Drive:', error);
+        throw new Error('Failed to save file to Google Drive');
+    }
+};
+
+const getOrCreateFolder = async (folderPath: string): Promise<string> => {
+    const folders = folderPath.split('/').filter(f => f.trim() !== '');
+    let parentId = 'root';
+
+    for (const folderName of folders) {
+        const folder = await searchForFolder(folderName, parentId);
+        if (folder) {
+            parentId = folder.id;
+        } else {
+            parentId = await createFolder(folderName, parentId);
+        }
+    }
+
+    return parentId;
+};
+
+const searchForFolder = async (folderName: string, parentId: string): Promise<{ id: string; name: string } | null> => {
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${parentId}' in parents and trashed=false`,
+        {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.files.length > 0 ? data.files[0] : null;
+};
+
+const createFolder = async (folderName: string, parentId: string): Promise<string> => {
+    const metadata = {
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
+    };
+
+    const response = await fetch(
+        'https://www.googleapis.com/drive/v3/files',
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(metadata)
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.id;
+};
+
+// Update these functions to include folderId
+const searchForFile = async (fileName: string, folderId: string): Promise<{ id: string; name: string } | null> => {
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${folderId}' in parents and trashed=false`,
+        {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.files.length > 0 ? data.files[0] : null;
+};
+
+const createFile = async (fileName: string, content: string, folderId: string): Promise<void> => {
+    const metadata = {
+        name: fileName,
+        mimeType: 'application/json',
+        parents: [folderId]
+    };
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([content], { type: 'application/json' }));
+
+    const response = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: form
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+};
+
+export const updateFile = async (fileId: string, content: string): Promise<void> => {
+    try {
+        const response = await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: content
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        console.log('File updated successfully');
+    } catch (error) {
+        console.error('Error updating file:', error);
+        throw new Error('Failed to update file in Google Drive');
+    }
+};
+
+const getParentFolderId = async (folderPath: string): Promise<string | null> => {
+    const folders = folderPath.split('/').filter(f => f.trim() !== '');
+    let parentId = 'root';
+
+    for (const folderName of folders) {
+        const folder = await searchForFolder(folderName, parentId);
+        if (folder) {
+            parentId = folder.id;
+        } else {
+            return null; // Folder not found
+        }
+    }
+
+    return parentId;
+};
+
+export const loadFileFromDrive = async (fileName: string, folderPath: string): Promise<string> => {
+    try {
+        await authenticateUser();
+
+        // Get the folder ID
+        const folderId = await getParentFolderId(folderPath);
+
+        if (!folderId) {
+            throw new Error(`Folder ${folderPath} not found in Google Drive`);
+        }
+
+        const file = await searchForFile(fileName, folderId);
+        if (!file) {
+            throw new Error(`File ${fileName} not found in folder ${folderPath}`);
+        }
+
+        const content = await getFileContent(file.id);
+        return content;
+    } catch (error) {
+        console.error('Error loading file from Google Drive:', error);
+        throw new Error('Failed to load file from Google Drive');
+    }
+};
+
+// ... (keep the existing searchForFolder, searchForFile, and getFileContent functions)
+

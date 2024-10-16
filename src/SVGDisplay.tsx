@@ -6,7 +6,6 @@ interface SVGDisplayProps {
     svgContent: string;
     selected3DShape: string | null;
     onSelect3DShape: (id: string | null) => void;
-    onDownloadSVG: () => void;
     onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
     canvasSize: { width: number; height: number };
 }
@@ -15,7 +14,6 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
     svgContent,
     selected3DShape,
     onSelect3DShape,
-    onDownloadSVG,
     onGetBoundingBox,
     canvasSize,
 }) => {
@@ -185,9 +183,6 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
                 </Button>
                 <Button onClick={resetZoom} className="bg-gray-800 text-white px-2 py-1 text-sm rounded">
                     Reset
-                </Button>
-                <Button onClick={onDownloadSVG} className="bg-blue-600 text-white px-2 py-1 text-sm rounded">
-                    Download SVG
                 </Button>
             </div>
             <style>

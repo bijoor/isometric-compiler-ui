@@ -3,7 +3,7 @@ import { config } from './config';
 import { Shape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
 import { calculateBoundingBox, clipSVGToContents } from './lib/svgUtils';
-import { loadShapesFromGoogleDrive } from './lib/googleDriveLib';
+import { loadShapesFromGoogleDrive, loadFileFromDrive, saveFileToDrive } from './lib/googleDriveLib';
 import * as diagramComponentsLib from './lib/diagramComponentsLib';
 
 const App: React.FC = () => {
@@ -12,7 +12,7 @@ const App: React.FC = () => {
     const [canvasSize, setCanvasSize] = useState({ width: 1000, height: 1000 });
     const [composedSVG, setComposedSVG] = useState<string>('');
     const [selected3DShape, setSelected3DShape] = useState<string | null>(null);
-    const [newPosition, setNewPosition] = useState<'top' | 'front-right' | 'front-left' | 'back-right' | 'back-left'>('top');
+    const [availableAttachmentPoints, setAvailableAttachmentPoints] = useState<string[]>([]);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
     const [fileName, setFileName] = useState(() => {
@@ -27,7 +27,10 @@ const App: React.FC = () => {
     const [folderUrl, setFolderUrl] = useState(() => {
         return localStorage.getItem('folderUrl') || '';
     });
-    const [availableAttachmentPoints, setAvailableAttachmentPoints] = useState<string[]>([]);
+    const [folderPath, setFolderPath] = useState(() => {
+        return localStorage.getItem('folderPath') || 'My Diagrams';
+    });
+
 
     useEffect(() => {
         fetchSvgLibrary();
@@ -57,6 +60,10 @@ const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('folderUrl', folderUrl);
     }, [folderUrl]);
+
+    useEffect(() => {
+        localStorage.setItem('folderPath', folderPath);
+    }, [folderPath]);
 
     const fetchSvgLibrary = async () => {
         try {
@@ -88,7 +95,7 @@ const App: React.FC = () => {
 
     const add3DShape = useCallback((shapeName: string, position: string, attachmentPoint: string | null) => {
         const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, position, attachmentPoint, selected3DShape);
-        
+
         if (result.newComponent) {
             setDiagramComponents(result.updatedComponents);
             setSelected3DShape(result.newComponent.id);
@@ -122,6 +129,43 @@ const App: React.FC = () => {
         setDiagramComponents(updatedComponents);
     }, [diagramComponents]);
 
+    const getJsonFileName = useCallback((svgFileName: string) => {
+        return svgFileName.replace(/\.svg$/, '.json');
+    }, []);
+
+    const handleSetFolderPath = useCallback((newPath: string) => {
+        setFolderPath(newPath);
+    }, []);
+
+    const handleSaveDiagram = useCallback(async () => {
+        try {
+            const jsonFileName = getJsonFileName(fileName);
+            const serializedData = diagramComponentsLib.serializeDiagramComponents(diagramComponents);
+            await saveFileToDrive(jsonFileName, serializedData, folderPath);
+            setErrorMessage(null);
+        } catch (error) {
+            console.error('Error saving diagram:', error);
+            setErrorMessage('Failed to save diagram. Please try again.');
+        }
+    }, [diagramComponents, fileName, folderPath, getJsonFileName]);
+
+    const handleLoadDiagram = useCallback(async () => {
+        try {
+            const jsonFileName = getJsonFileName(fileName);
+            const loadedData = await loadFileFromDrive(jsonFileName, folderPath);
+            const loadedComponents = diagramComponentsLib.deserializeDiagramComponents(loadedData);
+            setDiagramComponents(loadedComponents);
+            setErrorMessage(null);
+
+            // Reset selection and update available attachment points
+            setSelected3DShape(null);
+            setAvailableAttachmentPoints([]);
+        } catch (error) {
+            console.error('Error loading diagram:', error);
+            setErrorMessage('Failed to load diagram. Please check the file and folder path, then try again.');
+        }
+    }, [fileName, folderPath, getJsonFileName]);
+
     const handleSetCanvasSize = useCallback((newSize: { width: number; height: number }) => {
         setCanvasSize(newSize);
         localStorage.setItem('canvasSize', JSON.stringify(newSize));
@@ -147,29 +191,6 @@ const App: React.FC = () => {
         localStorage.setItem('folderUrl', newUrl);
     }, []);
 
-    const handleDownloadSVG = useCallback(() => {
-        let svgToDownload: string;
-        if (clipToContents && boundingBox) {
-            svgToDownload = clipSVGToContents(composedSVG, boundingBox);
-        } else {
-            svgToDownload = `<svg xmlns="http://www.w3.org/2000/svg">${composedSVG}</svg>`;
-        }
-
-        const blob = new Blob([svgToDownload], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [composedSVG, fileName, clipToContents, boundingBox]);
-
-    const handleGetBoundingBox = useCallback((newBoundingBox: { x: number, y: number, width: number, height: number } | null) => {
-        setBoundingBox(newBoundingBox);
-    }, []);
-
     const handleLoadFromGoogleDrive = async () => {
         if (!spreadsheetUrl || !folderUrl) {
             setErrorMessage('Please provide both Spreadsheet URL and Folder URL in the settings.');
@@ -189,6 +210,37 @@ const App: React.FC = () => {
             }
         }
     };
+
+    // get the bounding box for clipping the SVG to the content
+    const handleGetBoundingBox = useCallback((newBoundingBox: { x: number, y: number, width: number, height: number } | null) => {
+        setBoundingBox(newBoundingBox);
+    }, []);
+
+    const handleDownloadSVG = useCallback(() => {
+        let svgToDownload: string;
+        if (clipToContents && boundingBox) {
+            svgToDownload = clipSVGToContents(composedSVG, boundingBox);
+        } else {
+            svgToDownload = `<svg xmlns="http://www.w3.org/2000/svg">${composedSVG}</svg>`;
+        }
+
+        const blob = new Blob([svgToDownload], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Ensure fileName ends with .svg
+        let adjustedFileName = fileName.trim();
+        if (!adjustedFileName.toLowerCase().endsWith('.svg')) {
+            adjustedFileName += '.svg';
+        }
+
+        link.download = adjustedFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [composedSVG, fileName, clipToContents, boundingBox]);
 
     return (
         <ImprovedLayout
@@ -218,6 +270,10 @@ const App: React.FC = () => {
             onLoadShapesFromGoogleDrive={handleLoadFromGoogleDrive}
             errorMessage={errorMessage}
             setErrorMessage={setErrorMessage}
+            onSaveDiagram={handleSaveDiagram}
+            onLoadDiagram={handleLoadDiagram}
+            folderPath={folderPath}
+            setFolderPath={handleSetFolderPath}
         />
     );
 };
