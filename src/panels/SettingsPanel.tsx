@@ -41,8 +41,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onDownloadSVG,
 }) => (
     <div className="flex flex-col h-full p-4 overflow-y-auto">
-        <h2 className="text-xl font-semibold mb-4">Settings</h2>
-
         <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Canvas Size</h3>
             <div className="flex space-x-4">
