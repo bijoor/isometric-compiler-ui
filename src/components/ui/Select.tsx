@@ -1,47 +1,78 @@
-import React from 'react'
-import * as Select from '@radix-ui/react-select'
-import { ChevronDownIcon } from '@radix-ui/react-icons'
+import React from 'react';
+import * as Select from '@radix-ui/react-select';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons';
+import { cn } from "@/lib/utils";
 
-interface SelectProps {
-  options: Array<{ value: string; label: string }>
-  onChange: (value: string) => void
-  placeholder?: string
-  className?: string
+interface SelectOption {
+  value: string;
+  label: string;
 }
 
-export const RadixSelect: React.FC<SelectProps> = ({ options, onChange, placeholder, className }) => {
+interface SelectProps {
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+  value?: string;
+}
+
+export const RadixSelect: React.FC<SelectProps> = ({ options, onChange, placeholder, value }) => {
   return (
-    <Select.Root onValueChange={onChange}>
+    <Select.Root value={value} onValueChange={onChange}>
       <Select.Trigger 
-        className={`inline-flex items-center justify-between rounded px-4 py-2 text-sm font-medium bg-gray-700 text-white border border-gray-600 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full ${className}`}
-        style={{ backgroundColor: '#4a5568', color: 'white' }}
+        className={cn(
+          "inline-flex items-center justify-between rounded px-3 py-2 text-sm",
+          "leading-none h-10 gap-1 bg-gray-700 text-white",
+          "shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2",
+          "focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900",
+          "w-full"
+        )}
       >
-        <Select.Value placeholder={placeholder || "Select an option"} />
-        <Select.Icon>
-          <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+        <Select.Value placeholder={placeholder} />
+        <Select.Icon className="text-gray-400">
+          <ChevronDownIcon />
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
         <Select.Content 
-          className="overflow-hidden rounded-md shadow-lg"
-          style={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
-          position="popper"
-          sideOffset={5}
+          className={cn(
+            "overflow-hidden bg-gray-800 rounded-md shadow-lg",
+            "border border-gray-700",
+            "z-50" // Ensure the content is above other elements
+          )}
+          position="popper" // Use popper positioning
+          sideOffset={5} // Add some offset from the trigger
+          align="start"
+          alignOffset={-4} // Slight negative offset to align with the trigger's border
+          avoidCollisions={true}
+          style={{ width: 'var(--radix-select-trigger-width)' }} // Match trigger width
         >
-          <Select.Viewport className="p-1">
+          <Select.ScrollUpButton className="flex items-center justify-center h-6 bg-gray-800 text-gray-400 cursor-default">
+            <ChevronUpIcon />
+          </Select.ScrollUpButton>
+          <Select.Viewport className="p-1 max-h-60 overflow-y-auto">
             {options.map((option) => (
               <Select.Item
                 key={option.value}
                 value={option.value}
-                className="relative flex items-center px-8 py-2 text-sm rounded-sm cursor-default select-none outline-none"
-                style={{ color: 'black', backgroundColor: 'white' }}
+                className={cn(
+                  "text-sm leading-none text-gray-200 rounded flex items-center",
+                  "h-8 pr-8 pl-6 relative select-none",
+                  "data-[highlighted]:outline-none data-[highlighted]:bg-blue-600",
+                  "data-[highlighted]:text-white cursor-pointer"
+                )}
               >
                 <Select.ItemText>{option.label}</Select.ItemText>
+                <Select.ItemIndicator className="absolute left-1 w-6 inline-flex items-center justify-center">
+                  <CheckIcon />
+                </Select.ItemIndicator>
               </Select.Item>
             ))}
           </Select.Viewport>
+          <Select.ScrollDownButton className="flex items-center justify-center h-6 bg-gray-800 text-gray-400 cursor-default">
+            <ChevronDownIcon />
+          </Select.ScrollDownButton>
         </Select.Content>
       </Select.Portal>
     </Select.Root>
-  )
-}
+  );
+};
