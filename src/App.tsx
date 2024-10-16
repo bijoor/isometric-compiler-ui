@@ -117,7 +117,7 @@ const App: React.FC = () => {
 
         if (selected3DShape === id) {
             if (updatedComponents.length > 0) {
-                handleSelect3DShape(updatedComponents[0].id);
+                handleSelect3DShape(updatedComponents[updatedComponents.length-1].id);
             } else {
                 handleSelect3DShape(null);
             }
