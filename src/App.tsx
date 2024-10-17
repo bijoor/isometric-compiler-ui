@@ -77,20 +77,6 @@ const App: React.FC = () => {
         localStorage.setItem('showAttachmentPoints', showAttachmentPoints.toString());
     }, [showAttachmentPoints]);
 
-    const fetchSvgLibrary = async () => {
-        try {
-            const response = await fetch(`${config.serverUrl}/shapes`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data: Shape[] = await response.json();
-            setSvgLibrary(data);
-        } catch (error) {
-            console.error('Error fetching SVG library:', error);
-            setErrorMessage('Failed to fetch SVG library. Please try again later.');
-        }
-    };
-
     // handle select 3D shape from Composition panel or SVG diagram
     const handleSelect3DShape = useCallback((id: string | null) => {
         setSelected3DShape(id);
