@@ -38,6 +38,8 @@ interface ImprovedLayoutProps {
     onLoadDiagram: () => Promise<void>;
     folderPath: string;
     setFolderPath: (path: string) => void;
+    showAttachmentPoints: boolean;
+    setShowAttachmentPoints: (show: boolean) => void;
 }
 
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
@@ -71,6 +73,8 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onLoadDiagram,
     folderPath,
     setFolderPath,
+    showAttachmentPoints,
+    setShowAttachmentPoints,
 }) => {
     const [activePanel, setActivePanel] = useState<'shapes' | 'composition' | 'settings'>('shapes');
     const [isLoadingDialogOpen, setIsLoadingDialogOpen] = useState(false);
@@ -199,6 +203,8 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             folderPath={folderPath}
                             setFolderPath={setFolderPath}
                             onDownloadSVG={onDownloadSVG}
+                            showAttachmentPoints={showAttachmentPoints}
+                            setShowAttachmentPoints={setShowAttachmentPoints}
                         />
                     )}
                 </div>

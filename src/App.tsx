@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { config } from './config';
 import { Shape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
-import { calculateBoundingBox, clipSVGToContents } from './lib/svgUtils';
+import { clipSVGToContents } from './lib/svgUtils';
 import { loadShapesFromGoogleDrive, loadFileFromDrive, saveFileToDrive } from './lib/googleDriveLib';
 import * as diagramComponentsLib from './lib/diagramComponentsLib';
 
@@ -30,6 +30,9 @@ const App: React.FC = () => {
     const [folderPath, setFolderPath] = useState(() => {
         return localStorage.getItem('folderPath') || 'My Diagrams';
     });
+    const [showAttachmentPoints, setShowAttachmentPoints] = useState(() => {
+        return localStorage.getItem('showAttachmentPoints') === 'true';
+    });
 
 
     useEffect(() => {
@@ -37,9 +40,9 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        const compiledSVG = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary);
+        const compiledSVG = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary, showAttachmentPoints);
         setComposedSVG(compiledSVG);
-    }, [diagramComponents, canvasSize, svgLibrary]);
+    }, [diagramComponents, canvasSize, svgLibrary, showAttachmentPoints]);
 
     useEffect(() => {
         localStorage.setItem('canvasSize', JSON.stringify(canvasSize));
@@ -64,6 +67,10 @@ const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('folderPath', folderPath);
     }, [folderPath]);
+
+    useEffect(() => {
+        localStorage.setItem('showAttachmentPoints', showAttachmentPoints.toString());
+    }, [showAttachmentPoints]);
 
     const fetchSvgLibrary = async () => {
         try {
@@ -242,6 +249,10 @@ const App: React.FC = () => {
         URL.revokeObjectURL(url);
     }, [composedSVG, fileName, clipToContents, boundingBox]);
 
+    const handleSetShowAttachmentPoints = useCallback((show: boolean) => {
+        setShowAttachmentPoints(show);
+    }, []);
+
     return (
         <ImprovedLayout
             svgLibrary={svgLibrary}
@@ -274,6 +285,8 @@ const App: React.FC = () => {
             onLoadDiagram={handleLoadDiagram}
             folderPath={folderPath}
             setFolderPath={handleSetFolderPath}
+            showAttachmentPoints={showAttachmentPoints}
+            setShowAttachmentPoints={handleSetShowAttachmentPoints}
         />
     );
 };

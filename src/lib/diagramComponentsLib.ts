@@ -145,6 +145,22 @@ export const extractAttachmentPoints = (svgElement: SVGElement): AttachmentPoint
     return attachmentPoints;
 };
 
+export const toggleAttachmentPoints = (svgElement: SVGElement, show: boolean): SVGElement => {
+
+    // Select all circles with ids starting with "attach-"
+    const attachmentPoints = svgElement.querySelectorAll('circle[id^="attach-"]');
+
+    attachmentPoints.forEach((point) => {
+        if (show) {
+            point.removeAttribute('display');
+        } else {
+            point.setAttribute('display', 'none');
+        }
+    });
+
+    return svgElement;
+};
+
 export const getAttachmentPoint = (component: DiagramComponent, pointName: string): Point | null => {
     const point = component.attachmentPoints.find(p => p.name === pointName);
     return point ? { x: point.x, y: point.y } : null;
@@ -207,7 +223,8 @@ export const getSvgFromLibrary = (shapeName: string, svgLibrary: Shape[]): SVGGE
 export const compileDiagram = (
     diagramComponents: DiagramComponent[],
     canvasSize: { width: number; height: number },
-    svgLibrary: Shape[]
+    svgLibrary: Shape[],
+    showAttachmentPoints: boolean
 ): string => {
     console.log('Compiling diagram...');
 
@@ -254,6 +271,9 @@ export const compileDiagram = (
                 }
             }
         });
+
+        // toggle visibility of attachment points
+        toggleAttachmentPoints(shape3DElement, showAttachmentPoints);
 
         svgContent += shape3DElement.outerHTML;
         processedComponents.push(component);

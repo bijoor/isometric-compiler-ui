@@ -20,6 +20,8 @@ interface SettingsPanelProps {
     folderPath: string;
     setFolderPath: (path: string) => void;
     onDownloadSVG: () => void;
+    showAttachmentPoints: boolean;
+    setShowAttachmentPoints: (show: boolean) => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -39,10 +41,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     folderPath,
     setFolderPath,
     onDownloadSVG,
+    showAttachmentPoints,
+    setShowAttachmentPoints,
 }) => (
     <div className="flex flex-col h-full p-4 overflow-y-auto">
         <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Canvas Size</h3>
+            <h3 className="text-lg font-semibold mb-2">Canvas Settings</h3>
             <div className="flex space-x-4">
                 <div className="flex-1">
                     <label className="block mb-2">Width:</label>
@@ -61,6 +65,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => onSetCanvasSize({ ...canvasSize, height: parseInt(e.target.value) })}
                         className="w-full bg-gray-700 text-white p-2 rounded"
                     />
+                </div>
+                <div className="flex items-center mb-4">
+                    <Checkbox
+                        id="show-attachment-points"
+                        checked={showAttachmentPoints}
+                        onCheckedChange={(checked) => setShowAttachmentPoints(checked as boolean)}
+                        className="mr-2"
+                    />
+                    <label htmlFor="show-attachment-points">Show attachment points</label>
                 </div>
             </div>
         </div>
