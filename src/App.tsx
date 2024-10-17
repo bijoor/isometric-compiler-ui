@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { config } from './config';
 import { Shape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
-import { clipSVGToContents } from './lib/svgUtils';
+import { cleanupSVG, clipSVGToContents } from './lib/svgUtils';
 import { loadShapesFromGoogleDrive, loadFileFromDrive, saveFileToDrive } from './lib/googleDriveLib';
 import * as diagramComponentsLib from './lib/diagramComponentsLib';
 
@@ -17,9 +17,6 @@ const App: React.FC = () => {
     const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
     const [fileName, setFileName] = useState(() => {
         return localStorage.getItem('fileName') || 'diagram.svg';
-    });
-    const [clipToContents, setClipToContents] = useState(() => {
-        return localStorage.getItem('clipToContents') === 'true';
     });
     const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => {
         return localStorage.getItem('spreadsheetUrl') || '';
@@ -51,10 +48,6 @@ const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('fileName', fileName);
     }, [fileName]);
-
-    useEffect(() => {
-        localStorage.setItem('clipToContents', clipToContents.toString());
-    }, [clipToContents]);
 
     useEffect(() => {
         localStorage.setItem('spreadsheetUrl', spreadsheetUrl);
@@ -183,11 +176,6 @@ const App: React.FC = () => {
         localStorage.setItem('fileName', newFileName);
     }, []);
 
-    const handleSetClipToContents = useCallback((newClipToContents: boolean) => {
-        setClipToContents(newClipToContents);
-        localStorage.setItem('clipToContents', newClipToContents.toString());
-    }, []);
-
     const handleSetSpreadsheetUrl = useCallback((newUrl: string) => {
         setSpreadsheetUrl(newUrl);
         localStorage.setItem('spreadsheetUrl', newUrl);
@@ -225,10 +213,11 @@ const App: React.FC = () => {
 
     const handleDownloadSVG = useCallback(() => {
         let svgToDownload: string;
-        if (clipToContents && boundingBox) {
+        if (boundingBox) {
             svgToDownload = clipSVGToContents(composedSVG, boundingBox);
         } else {
-            svgToDownload = `<svg xmlns="http://www.w3.org/2000/svg">${composedSVG}</svg>`;
+            svgToDownload = cleanupSVG(composedSVG);
+            svgToDownload = `<svg xmlns="http://www.w3.org/2000/svg">${svgToDownload}</svg>`;
         }
 
         const blob = new Blob([svgToDownload], { type: 'image/svg+xml' });
@@ -247,7 +236,7 @@ const App: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-    }, [composedSVG, fileName, clipToContents, boundingBox]);
+    }, [composedSVG, fileName, boundingBox]);
 
     const handleSetShowAttachmentPoints = useCallback((show: boolean) => {
         setShowAttachmentPoints(show);
@@ -270,8 +259,6 @@ const App: React.FC = () => {
             onDownloadSVG={handleDownloadSVG}
             fileName={fileName}
             setFileName={handleSetFileName}
-            clipToContents={clipToContents}
-            setClipToContents={handleSetClipToContents}
             onGetBoundingBox={handleGetBoundingBox}
             spreadsheetUrl={spreadsheetUrl}
             setSpreadsheetUrl={handleSetSpreadsheetUrl}

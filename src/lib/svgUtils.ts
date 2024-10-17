@@ -1,5 +1,4 @@
 // lib/svgUtils.ts
-import { Shape } from '../Types';
 
 export const calculateBoundingBox = (svgElement: SVGSVGElement): { x: number, y: number, width: number, height: number } | null => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -111,28 +110,4 @@ export const clipSVGToContents = (
     const resultSvg = new XMLSerializer().serializeToString(svg);
 
     return resultSvg;
-};
-
-export const toggleAttachmentPoints = (svgContent: string, show: boolean): string => {
-    const parser = new DOMParser();
-    const svgCleaned = cleanupSVG(svgContent);
-    const doc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${svgCleaned}</svg>`, 'image/svg+xml');
-    const svg = doc.documentElement;
-
-    // Select all circles with ids starting with "attach-"
-    const attachmentPoints = svg.querySelectorAll('circle[id^="attach-"]');
-    console.log("toggling attachment points");
-    console.log(svgCleaned);
-    console.log(svg);
-    console.log(attachmentPoints);
-
-    attachmentPoints.forEach((point) => {
-        if (show) {
-            point.removeAttribute('display');
-        } else {
-            point.setAttribute('display', 'none');
-        }
-    });
-
-    return new XMLSerializer().serializeToString(svg);
 };

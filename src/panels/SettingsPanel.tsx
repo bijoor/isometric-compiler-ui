@@ -8,8 +8,6 @@ interface SettingsPanelProps {
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     fileName: string;
     setFileName: (name: string) => void;
-    clipToContents: boolean;
-    setClipToContents: (clip: boolean) => void;
     spreadsheetUrl: string;
     setSpreadsheetUrl: (url: string) => void;
     folderUrl: string;
@@ -29,8 +27,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onSetCanvasSize,
     fileName,
     setFileName,
-    clipToContents,
-    setClipToContents,
     spreadsheetUrl,
     setSpreadsheetUrl,
     folderUrl,
@@ -102,15 +98,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <p className="text-sm text-gray-400 mb-2">
                 Note: This folder path will be used for both saving and loading diagrams.
             </p>
-            <div className="flex items-center mb-4">
-                <Checkbox
-                    id="clip-to-contents"
-                    checked={clipToContents}
-                    onCheckedChange={(checked) => setClipToContents(checked as boolean)}
-                    className="mr-2"
-                />
-                <label htmlFor="clip-to-contents">Clip SVG to contents</label>
-            </div>
             <div className="flex space-x-2">
                 <Button onClick={onSaveDiagram} className="flex-1">
                     Save Diagram

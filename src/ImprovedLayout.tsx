@@ -23,8 +23,6 @@ interface ImprovedLayoutProps {
     onDownloadSVG: () => void;
     fileName: string;
     setFileName: (name: string) => void;
-    clipToContents: boolean;
-    setClipToContents: (clip: boolean) => void;
     onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
     spreadsheetUrl: string;
     setSpreadsheetUrl: (url: string) => void;
@@ -58,8 +56,6 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onDownloadSVG,
     fileName,
     setFileName,
-    clipToContents,
-    setClipToContents,
     onGetBoundingBox,
     spreadsheetUrl,
     setSpreadsheetUrl,
@@ -191,8 +187,6 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             onSetCanvasSize={onSetCanvasSize}
                             fileName={fileName}
                             setFileName={setFileName}
-                            clipToContents={clipToContents}
-                            setClipToContents={setClipToContents}
                             spreadsheetUrl={spreadsheetUrl}
                             setSpreadsheetUrl={setSpreadsheetUrl}
                             folderUrl={folderUrl}
