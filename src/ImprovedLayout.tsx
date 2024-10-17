@@ -5,6 +5,7 @@ import SVGDisplay from './SVGDisplay';
 import ShapesPanel from './panels/ShapesPanel';
 import CompositionPanel from './panels/CompositionPanel';
 import SettingsPanel from './panels/SettingsPanel';
+import AttachmentOptionsPanel from './panels/AttachmentOptionsPanel';
 import { DiagramComponent, Shape } from './Types';
 
 interface ImprovedLayoutProps {
@@ -77,11 +78,17 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const [isSaveLoadDialogOpen, setIsSaveLoadDialogOpen] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
     const [saveLoadMessage, setSaveLoadMessage] = useState<string | null>(null);
+    const [selectedPosition, setSelectedPosition] = useState<string>('top');
+    const [selectedAttachmentPoint, setSelectedAttachmentPoint] = useState<string>('none');
 
     const handleSelect3DShape = useCallback((id: string | null) => {
         console.log('ImprovedLayout: Selecting 3D shape:', id);
         onSelect3DShape(id);
     }, [onSelect3DShape]);
+
+    const handleAdd3DShape = useCallback((shapeName: string) => {
+        onAdd3DShape(shapeName, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
+    }, [onAdd3DShape, selectedPosition, selectedAttachmentPoint]);
 
     const handleLoadFromGoogleDrive = async () => {
         if (!spreadsheetUrl || !folderUrl) {
@@ -165,11 +172,10 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     {activePanel === 'shapes' && (
                         <ShapesPanel
                             svgLibrary={svgLibrary}
-                            onAdd3DShape={onAdd3DShape}
+                            onAdd3DShape={handleAdd3DShape}
                             onAdd2DShape={onAdd2DShape}
                             selected3DShape={selected3DShape}
                             diagramComponents={diagramComponents}
-                            availableAttachmentPoints={availableAttachmentPoints}
                         />
                     )}
                     {activePanel === 'composition' && (
@@ -177,7 +183,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             diagramComponents={diagramComponents}
                             onRemove3DShape={onRemove3DShape}
                             onRemove2DShape={onRemove2DShape}
-                            onSelect3DShape={handleSelect3DShape}
+                            onSelect3DShape={onSelect3DShape}
                             selected3DShape={selected3DShape}
                         />
                     )}
@@ -204,16 +210,36 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                 </div>
             </div>
 
-            {/* Right side SVG display */}
-            <div className="flex flex-col flex-grow">
-                <h2 className="text-xl h-14 font-semibold p-4">Composed SVG:</h2>
-                <SVGDisplay
-                    svgContent={composedSVG}
-                    selected3DShape={selected3DShape}
-                    onSelect3DShape={handleSelect3DShape}
-                    onGetBoundingBox={onGetBoundingBox}
-                    canvasSize={canvasSize}
-                />
+            <div className="flex-grow flex flex-col relative">
+                {/* Heading */}
+                <h2 className="text-xl h-14 font-semibold p-4 bg-gray-800 z-10">Composed SVG</h2>
+
+                {/* Relative container for SVG Display and Attachment Options Panel */}
+                <div className="relative flex-grow overflow-hidden">
+                    {/* SVG Display */}
+                    <SVGDisplay
+                        svgContent={composedSVG}
+                        selected3DShape={selected3DShape}
+                        onSelect3DShape={handleSelect3DShape}
+                        onGetBoundingBox={onGetBoundingBox}
+                        canvasSize={canvasSize}
+                    />
+
+                    {/* Attachment Options Panel - slides behind the heading */}
+                    <div
+                        className={`absolute top-0 left-0 right-0 transition-transform duration-300 ease-in-out transform ${selected3DShape ? 'translate-y-0' : '-translate-y-full'
+                            }`}
+                        style={{ top: '-1px' }} // Slight overlap to prevent gap
+                    >
+                        <AttachmentOptionsPanel
+                            selectedPosition={selectedPosition}
+                            setSelectedPosition={setSelectedPosition}
+                            selectedAttachmentPoint={selectedAttachmentPoint}
+                            setSelectedAttachmentPoint={setSelectedAttachmentPoint}
+                            availableAttachmentPoints={availableAttachmentPoints}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Google Drive Folder URL Dialog */}
