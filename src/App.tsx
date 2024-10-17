@@ -5,6 +5,7 @@ import ImprovedLayout from './ImprovedLayout';
 import { cleanupSVG, clipSVGToContents } from './lib/svgUtils';
 import { loadShapesFromGoogleDrive, loadFileFromDrive, saveFileToDrive } from './lib/googleDriveLib';
 import * as diagramComponentsLib from './lib/diagramComponentsLib';
+import { defaultShapesLibrary } from './lib/defaultShapesLib';
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -33,9 +34,20 @@ const App: React.FC = () => {
 
 
     useEffect(() => {
-        fetchSvgLibrary();
-    }, []);
+        const loadSvgContent = async () => {
+            const loadedLibrary = await Promise.all(
+                defaultShapesLibrary.map(async (shape) => {
+                    const response = await fetch(`./shapes/${shape.svgFile}`);
+                    const svgContent = await response.text();
+                    return { ...shape, svgContent };
+                })
+            );
+            setSvgLibrary(loadedLibrary);
+        };
 
+        loadSvgContent();
+    }, []);
+    
     useEffect(() => {
         const compiledSVG = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary, showAttachmentPoints);
         setComposedSVG(compiledSVG);

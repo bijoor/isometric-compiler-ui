@@ -24,7 +24,8 @@ export interface Shape {
     name: string;
     type: '2D' | '3D';  // Changed to specific string literal types
     attachTo?: string;
-    svgContent: string;
+    svgFile?:string;
+    svgContent?: string;
 }
 
 // DiagramComponent interface
