@@ -50,6 +50,40 @@ Users can achieve the following outcomes:
 - Collaborate on diagram designs by sharing composition files.
 - Export high-quality SVG diagrams for use in presentations or publications.
 
+## Shapes Panel
+
+![Shapes Panel](./images/ui-shapes-panel.png)
+
+The Shapes panel allows you to add new 3D shapes to the composition, and attach 2D shapes to existing 3D shapes.
+
+### Adding 3D Shapes
+
+- To start a new composition, first place a 3D shape by clicking on the Add button next to a 3D shape
+- Select a 3D shape in the composition by clicking on it (or selecting it in the Composition panel)
+- Choose where a new shape will be attached to the selected 3D Shape by using the "Attach next 3D shape to" buttons. The three attachment sides are Top, Front Left and Front Right. 
+    - Choosing Top will place any new 3D shape on top of the selected shape
+    - Choosing Front Left will place any new 3D shape to the front and left of the selected shape
+    - Choosing Front Right will place any new 3D shape to the front and right of the selected shape
+- Add a new 3D shape to the selected shape at the position selected by clicking on the Add button next to a 3D shape
+
+### Adding 2D Shapes
+
+- Select a 3D shape in the composition by clicking on it (or selecting it in the Composition panel)
+- Click the Add button next to a 2D shape to add it to a predefined attachment point of the 3D shape
+- The predefined attachment point is displayed next to the name of the 2D shape
+- Note that the "Attach next 3D shape to" buttons are not used for 2D shapes
+- The 2D shape will be attached to the 3D shape only if the 3D shape supports the predefined attachment point.
+
+## Composition Panel
+
+![Composition Panel](./images/ui-composition.png)
+
+The Composition panel allows you to select a 3D shape in the composition and to remove any 3D or 2D shapes from the composition
+
+- To remove a 2D shape attached to a 3D shape, click on the Remove button next to the 2D shape listed in the 3D shape card
+- To remove a 3D shape, click on the Remove button on the top right of the 3D shape card
+- Note that removing a 3D shape will automatically remove all 2D and 3D shapes that were attached to it
+
 ## Settings Panel
 
 ![Settings Panel](./images/ui-settings.png)

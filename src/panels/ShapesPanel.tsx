@@ -80,7 +80,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
         <div className="space-y-2">
             <div className="sticky top-0 bg-slate-800 z-10">
                 <div className="mb-2">
-                    <label className="block mb-2">Position for next 3D shape:</label>
+                    <label className="block mb-2">Attach next 3D shape to:</label>
                     <ToggleGroup
                         options={positionOptions}
                         value={selectedPosition}
