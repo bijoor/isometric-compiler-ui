@@ -66,14 +66,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         className="w-full bg-gray-700 text-white p-2 rounded"
                     />
                 </div>
-                <div className="flex items-center mb-4">
-                    <Checkbox
-                        id="show-attachment-points"
-                        checked={showAttachmentPoints}
-                        onCheckedChange={(checked) => setShowAttachmentPoints(checked as boolean)}
-                        className="mr-2"
-                    />
-                    <label htmlFor="show-attachment-points">Show attachment points</label>
+                <div className="flex-1">
+                    <div className="block mb-2">Attachment Points:</div>
+                    <div className="block">
+                        <Checkbox
+                            id="show-attachment-points"
+                            checked={showAttachmentPoints}
+                            onCheckedChange={(checked) => setShowAttachmentPoints(checked as boolean)}
+                            className="mr-2"
+                        />
+                        <label htmlFor="show-attachment-points">{showAttachmentPoints ? "Show" : "Hide"}</label>
+                    </div>
                 </div>
             </div>
         </div>
