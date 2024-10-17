@@ -2,20 +2,22 @@
 
 ## Description
 
-The SVG Isometric Shapes Compiler is a powerful web application that allows users to create complex isometric diagrams by combining 3D and 2D SVG shapes. This tool is perfect for designers, architects, and anyone who needs to create detailed isometric illustrations for presentations, documentation, or visual aids.
+The SVG Isometric Shapes Compiler is a web application that allows users to create complex isometric diagrams by combining 3D and 2D SVG shapes. This tool is perfect for designers, architects, and anyone who needs to create detailed isometric illustrations for presentations, documentation, or visual aids.
 
 [Try the demo online](https://bijoor.github.io/isometric-compiler-ui/)
 
 ## Features
 
-- Drag-and-drop interface for easy shape placement
+- Point and click interface for easy shape placement
 - Library of pre-defined 3D and 2D SVG shapes
 - Ability to combine shapes to create complex isometric diagrams
 - Google Drive integration for loading custom shape libraries
-- Save and load diagram compositions
+- Save and load diagram compositions to Google Drive
 - Export diagrams as SVG files
 - Customizable canvas size
-- Zoom and pan functionality for detailed editing
+- Zoom and pan functionality for detailed viewing
+- Composition based on attachment points that provides very high accuracy of placement
+- Relative positioning of all shapes ensures that changes to shapes in the library retains the diagram consistency
 
 ### Using the Application
 
@@ -29,10 +31,11 @@ The application interface is divided into three main sections:
 
 #### Steps to Create a Diagram:
 
-1. Load your shape library using the Settings tab.
+1. Load your shape library using the Settings tab, or use the default shapes included.
 2. Switch to the Shapes tab and add 3D shapes to your canvas.
-3. Select a 3D shape and add 2D shapes to its faces as desired.
-4. Use the Composition tab to adjust the positioning and layering of shapes.
+3. Add new 3D Shapes to connect its attachment point to that of an already placed 3D shape.
+4. Select a 3D shape and add 2D shapes to its attachment points as desired.
+5. Use the Composition tab to remove 3D or 2D shapes.
 5. Fine-tune your diagram using the zoom and pan controls on the canvas.
 6. Save your work or export the final SVG using the options in the Settings tab.
 
@@ -57,15 +60,21 @@ The Settings panel allows you to configure various aspects of your diagram and t
 - **Width**: Set the width of your canvas in pixels. Default is 1000.
 - **Height**: Set the height of your canvas in pixels. Default is 1000.
 
+### Attachemnt Points
+- **Hide**: When the checkbox is off, the attachment points are hidden in the SVG Canvas
+- **Show**: When the checkbox is on, the attachment points are displayed in the SVG Canvas. 
+Please note that attachment points will be visible only if they were designed to be visible in the Shapes library. If the attachment points are designed with no fill or stroke then their visibility will not be affected by this setting.
+
 ### Diagram Settings
 - **File Name**: Enter the name for your SVG file when saving or downloading. In the example, it's set to "bricks.svg".
 - **Folder Path**: Specify the folder path where diagrams will be saved and loaded from. In this case, it's set to "My Diagrams".
-- **Clip SVG to contents**: When checked, this option will trim the SVG to the content's boundaries, removing any excess blank space.
+Please note that a previous setting provided an option to download the SVG wih the set canvas size, and only on enabling the setting, the SVG was clipped to the contents with a fixed margin. Now this is set as the default.
 
 ### Diagram Actions
 - **Save Diagram**: Click to save your current diagram composition.
 - **Load Diagram**: Click to load a previously saved diagram.
 - **Download SVG**: Click to download your diagram as an SVG file.
+Please note that in this version only save and load to Google Drive is supported. Download will download the SVG to your local drive.
 
 ### Shapes Library Settings
 - **Spreadsheet URL**: Enter the URL of the Google Sheets document containing your shapes library index.
