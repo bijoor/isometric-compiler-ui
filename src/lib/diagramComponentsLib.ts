@@ -78,11 +78,29 @@ export const add2DShape = (
     }
 };
 
+
+const findDependentShapes = (
+    components: DiagramComponent[],
+    shapeId: string,
+    dependentIds: Set<string> = new Set()
+): Set<string> => {
+    dependentIds.add(shapeId);
+
+    components.forEach(component => {
+        if (component.relativeToId === shapeId) {
+            findDependentShapes(components, component.id, dependentIds);
+        }
+    });
+
+    return dependentIds;
+};
+
 export const remove3DShape = (
     diagramComponents: DiagramComponent[],
     id: string
 ): DiagramComponent[] => {
-    return diagramComponents.filter(component => component.id !== id);
+    const dependentIds = findDependentShapes(diagramComponents, id);
+    return diagramComponents.filter(component => !dependentIds.has(component.id));
 };
 
 export const remove2DShape = (
