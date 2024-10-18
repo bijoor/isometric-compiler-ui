@@ -15,7 +15,7 @@ export const add3DShape = (
     selected3DShape: string | null
 ): { updatedComponents: DiagramComponent[], newComponent: DiagramComponent | null } => {
     const newId = `shape-${Date.now()}`;
-    
+
     if (diagramComponents.length === 0 || selected3DShape !== null) {
         const shape = svgLibrary.find(s => s.name === shapeName);
         if (!shape) {
@@ -41,12 +41,13 @@ export const add3DShape = (
             relativeToId: diagramComponents.length === 0 ? null : selected3DShape,
             attached2DShapes: [],
             attachmentPoints: attachmentPoints,
-            absolutePosition: { x: 0, y: 0 }
+            absolutePosition: { x: 0, y: 0 },
+            cut: false,
         };
 
         const updatedComponents = [...diagramComponents, newComponent];
 
-        return { 
+        return {
             updatedComponents,
             newComponent
         };
@@ -78,6 +79,15 @@ export const add2DShape = (
     }
 };
 
+export const getSelected3DShape = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null
+): DiagramComponent | null => {
+    if (selected3DShape === null) {
+        return null;
+    }
+    return diagramComponents.find(component => component.id === selected3DShape) || null;
+};
 
 const findDependentShapes = (
     components: DiagramComponent[],
@@ -119,14 +129,89 @@ export const remove2DShape = (
     });
 };
 
-export const getSelected3DShape = (
+export const cut3DShape = (
     diagramComponents: DiagramComponent[],
-    selected3DShape: string | null
-): DiagramComponent | null => {
-    if (selected3DShape === null) {
-        return null;
+    id: string
+): DiagramComponent[] => {
+    const dependentIds = findDependentShapes(diagramComponents, id);
+    return diagramComponents.map(component =>
+        dependentIds.has(component.id)
+            ? { ...component, cut: true }
+            : component
+    );
+};
+
+export const cancelCut = (
+    diagramComponents: DiagramComponent[],
+    id: string
+): DiagramComponent[] => {
+    const dependentIds = findDependentShapes(diagramComponents, id);
+    return diagramComponents.map(component =>
+        dependentIds.has(component.id)
+            ? { ...component, cut: false }
+            : component
+    );
+};
+
+export const paste3DShape = (
+    diagramComponents: DiagramComponent[],
+    id: string,
+    targetId: string,
+    newPosition: DiagramComponent['position'],
+    attachmentPoint: string | null,
+): { updatedComponents: DiagramComponent[], pastedComponent: DiagramComponent | null }  => {
+    const dependentIds = findDependentShapes(diagramComponents, id);
+    let pastedComponent: DiagramComponent | null = null;
+    let cutComponents: DiagramComponent[] = [];
+    let nonCutComponents: DiagramComponent[] = [];
+
+    console.log(`pasting object ${id} on ${targetId} at ${newPosition} ${attachmentPoint}`);
+
+    // Separate cut and non-cut components
+    diagramComponents.forEach(component => {
+        if (dependentIds.has(component.id)) {
+            cutComponents.push({
+                ...component,
+                cut: false,
+                relativeToId: component.id === id ? targetId : component.relativeToId,
+                position: component.id === id ? (attachmentPoint || newPosition) as DiagramComponent['position'] : component.position
+            });
+            if (component.id === id) {
+                pastedComponent = cutComponents[cutComponents.length - 1];
+            }
+        } else {
+            nonCutComponents.push(component);
+        }
+    });
+
+    // Find all dependent objects of the target
+    const targetDependentIds = findDependentShapes(nonCutComponents, targetId);
+
+    // Find the index of the last dependent object of the target
+    let insertIndex = -1;
+    for (let i = nonCutComponents.length - 1; i >= 0; i--) {
+        if (targetDependentIds.has(nonCutComponents[i].id)) {
+            insertIndex = i + 1;
+            break;
+        }
     }
-    return diagramComponents.find(component => component.id === selected3DShape) || null;
+
+    // If no dependents were found, insert after the target
+    if (insertIndex === -1) {
+        insertIndex = nonCutComponents.findIndex(c => c.id === targetId) + 1;
+    }
+
+    // Insert cut components after the last dependent of the target
+    const updatedComponents = [
+        ...nonCutComponents.slice(0, insertIndex),
+        ...cutComponents,
+        ...nonCutComponents.slice(insertIndex)
+    ];
+
+    return {
+        updatedComponents,
+        pastedComponent
+    };
 };
 
 export const getAvailableAttachmentPoints = (
@@ -139,8 +224,6 @@ export const getAvailableAttachmentPoints = (
     }
     return [];
 };
-
-// Functions from DiagramUtils
 
 export const extractAttachmentPoints = (svgElement: SVGElement): AttachmentPoint[] => {
     const attachmentPoints: AttachmentPoint[] = [];
@@ -187,10 +270,23 @@ export const getAttachmentPoint = (component: DiagramComponent, pointName: strin
 export const calculateAbsolutePosition = (
     component: DiagramComponent,
     referenceComponent: DiagramComponent | null,
-    canvasSize: { width: number; height: number }
+    canvasSize: { width: number; height: number },
+    allComponents: DiagramComponent[]
 ): Point => {
     if (!referenceComponent) {
         return { x: canvasSize.width / 2, y: canvasSize.height / 2 };
+    }
+
+    // If the reference component doesn't have an absolute position yet,
+    // calculate it recursively
+    if (!referenceComponent.absolutePosition) {
+        const refOfRef = allComponents.find(c => c.id === referenceComponent.relativeToId) || null;
+        referenceComponent.absolutePosition = calculateAbsolutePosition(
+            referenceComponent,
+            refOfRef,
+            canvasSize,
+            allComponents
+        );
     }
 
     const [positionType, attachmentPoint] = component.position.split('-');
@@ -243,7 +339,7 @@ export const compileDiagram = (
     canvasSize: { width: number; height: number },
     svgLibrary: Shape[],
     showAttachmentPoints: boolean
-): string => {
+): { svgContent: string; processedComponents: DiagramComponent[] } => {
     console.log('Compiling diagram...');
 
     let svgContent = '';
@@ -263,7 +359,7 @@ export const compileDiagram = (
             ? processedComponents.find(c => c.id === component.relativeToId) || null
             : null;
 
-        const absolutePosition = calculateAbsolutePosition(component, referenceComponent, canvasSize);
+        const absolutePosition = calculateAbsolutePosition(component, referenceComponent, canvasSize, diagramComponents);
         component.absolutePosition = absolutePosition;
 
         shape3DElement.setAttribute('transform', `translate(${absolutePosition.x}, ${absolutePosition.y})`);
@@ -297,7 +393,7 @@ export const compileDiagram = (
         processedComponents.push(component);
     });
 
-    return svgContent;
+    return { svgContent, processedComponents };
 };
 
 export const updateAvailableAttachmentPoints = (
@@ -317,6 +413,80 @@ export const updateAvailableAttachmentPoints = (
     return ['none', ...new Set(points)];
 };
 
+export const calculateDistance = (point1: Point, point2: Point): number => {
+    const dx = point1.x - point2.x;
+    const dy = point1.y - point2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+};
+
+export const findClosestAttachmentPoint = (
+    clickPoint: Point,
+    component: DiagramComponent
+): { position: string, attachmentPoint: string } => {
+    if (!Array.isArray(component.attachmentPoints) || component.attachmentPoints.length < 1) {
+        return { position: 'top', attachmentPoint: 'none' };
+    }
+
+    // Filter out attachment points starting with "attach-bottom" and "attach-back"
+    const validAttachmentPoints = component.attachmentPoints.filter(point => 
+        !point.name.startsWith('attach-bottom') && !point.name.startsWith('attach-back')
+    );
+
+    if (validAttachmentPoints.length === 0) {
+        return { position: 'top', attachmentPoint: 'none' };
+    }
+
+    let closestPoint: AttachmentPoint = validAttachmentPoints[0];
+    let minDistance = Infinity;
+
+    validAttachmentPoints.forEach((point: AttachmentPoint) => {
+        if (typeof point.x === 'number' && typeof point.y === 'number') {
+            const distance = calculateDistance(clickPoint, point);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = point;
+            }
+        }
+    });
+
+
+    if (typeof closestPoint.name !== 'string') {
+        return { position: 'top', attachmentPoint: 'none' };
+    }
+
+    const nameParts = closestPoint.name.split('-');
+    if (nameParts.length < 2 || nameParts[0] !== 'attach') {
+        return { position: 'top', attachmentPoint: 'none' };
+    }
+
+    let position: string;
+    let specific: string;
+
+    if (nameParts[1] === 'front' && (nameParts[2] === 'left' || nameParts[2] === 'right')) {
+        position = `${nameParts[1]}-${nameParts[2]}`;
+        specific = nameParts.slice(3).join('-');
+    } else {
+        position = nameParts[1];
+        specific = nameParts.slice(2).join('-');
+    }
+
+    return {
+        position: position,
+        attachmentPoint: specific ? `${position}-${specific}` : 'none'
+    };
+};
+
+export const getClosestAttachmentPoint = (
+    clickX: number,
+    clickY: number,
+    component: DiagramComponent
+): { position: string, attachmentPoint: string } => {
+    const clickPoint: Point = { x: clickX, y: clickY };
+    return findClosestAttachmentPoint(clickPoint, component);
+};
+
+
 // Functions to Save and Load a composition in Diagram Components
 
 
@@ -330,7 +500,7 @@ export const deserializeDiagramComponents = (
     serializedData: string
 ): DiagramComponent[] => {
     const parsedData = JSON.parse(serializedData);
-    
+
     if (!validateLoadedFile(parsedData)) {
         throw new Error('Invalid diagram components structure');
     }
@@ -349,20 +519,20 @@ export const validateLoadedFile = (
         if (!component.id || !component.shape || !component.position) return false;
         if (!Array.isArray(component.attached2DShapes)) return false;
         if (!Array.isArray(component.attachmentPoints)) return false;
-        
+
         // Validate attached2DShapes
         for (const shape of component.attached2DShapes) {
             if (typeof shape.name !== 'string' || typeof shape.attachedTo !== 'string') return false;
         }
-        
+
         // Validate attachmentPoints
         for (const point of component.attachmentPoints) {
             if (typeof point.name !== 'string' || typeof point.x !== 'number' || typeof point.y !== 'number') return false;
         }
-        
+
         // Validate absolutePosition
-        if (typeof component.absolutePosition !== 'object' || 
-            typeof component.absolutePosition.x !== 'number' || 
+        if (typeof component.absolutePosition !== 'object' ||
+            typeof component.absolutePosition.x !== 'number' ||
             typeof component.absolutePosition.y !== 'number') return false;
     }
 

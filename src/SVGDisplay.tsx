@@ -1,21 +1,29 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { DiagramComponent } from './Types';
 import { Button } from './components/ui/Button';
 import { calculateBoundingBox } from './lib/svgUtils';
+import { getClosestAttachmentPoint } from './lib/diagramComponentsLib';
 
 interface SVGDisplayProps {
     svgContent: string;
     selected3DShape: string | null;
+    diagramComponents: DiagramComponent[];
     onSelect3DShape: (id: string | null) => void;
     onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
     canvasSize: { width: number; height: number };
+    setSelectedPosition: (position: string) => void;
+    setSelectedAttachmentPoint: (point: string) => void;
 }
 
 const SVGDisplay: React.FC<SVGDisplayProps> = ({
     svgContent,
     selected3DShape,
+    diagramComponents,
     onSelect3DShape,
     onGetBoundingBox,
     canvasSize,
+    setSelectedPosition,
+    setSelectedAttachmentPoint,
 }) => {
     const [scale, setScale] = useState(1);
     const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: canvasSize.width, height: canvasSize.height });
@@ -95,8 +103,16 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
                     selectedElement.classList.add('highlighted-shape');
                 }
             }
+
+            // Apply reduced opacity to cut objects
+            diagramComponents.forEach(component => {
+                const element = svg.getElementById(component.id);
+                if (element instanceof SVGElement) {
+                    element.style.opacity = component.cut ? '0.5' : '1';
+                }
+            });
         }
-    }, [selected3DShape, svgContent]);
+    }, [selected3DShape, diagramComponents, svgContent]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         setDragging(true);
@@ -154,9 +170,28 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
         const target = e.target as SVGElement;
         const shape3D = target.closest('[id^="shape-"]');
         if (shape3D) {
-            onSelect3DShape(shape3D.id);
+            const shapeId = shape3D.id;
+            const component = diagramComponents.find(c => c.id === shapeId);
+
+            onSelect3DShape(shapeId);
+            
+            if (component) {
+                const svgRect = shape3D.getBoundingClientRect();
+                if (svgRect) {
+                    const clickX = (e.clientX - svgRect.left) / scale;
+                    const clickY = (e.clientY - svgRect.top) / scale;
+                    console.log(` click : ${clickX},${clickY}`);
+                    console.log(svgRect);
+                    
+                    const { position, attachmentPoint } = getClosestAttachmentPoint(clickX, clickY, component);
+                    setSelectedPosition(position);
+                    setSelectedAttachmentPoint(attachmentPoint);
+                }
+            }
         } else {
             onSelect3DShape(null);
+            setSelectedPosition('top');
+            setSelectedAttachmentPoint('none');
         }
     };
 

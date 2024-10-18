@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { config } from './config';
 import { Shape, DiagramComponent } from './Types';
 import ImprovedLayout from './ImprovedLayout';
 import { cleanupSVG, clipSVGToContents } from './lib/svgUtils';
 import { loadShapesFromGoogleDrive, loadFileFromDrive, saveFileToDrive } from './lib/googleDriveLib';
 import * as diagramComponentsLib from './lib/diagramComponentsLib';
 import { defaultShapesLibrary } from './lib/defaultShapesLib';
+import { createKeyboardShortcuts } from './KeyboardShortcuts';
 
 const App: React.FC = () => {
     const [svgLibrary, setSvgLibrary] = useState<Shape[]>([]);
@@ -13,6 +13,8 @@ const App: React.FC = () => {
     const [canvasSize, setCanvasSize] = useState({ width: 1000, height: 1000 });
     const [composedSVG, setComposedSVG] = useState<string>('');
     const [selected3DShape, setSelected3DShape] = useState<string | null>(null);
+    const [selectedPosition, setSelectedPosition] = useState<string>('top');
+    const [selectedAttachmentPoint, setSelectedAttachmentPoint] = useState<string | null>(null);
     const [availableAttachmentPoints, setAvailableAttachmentPoints] = useState<string[]>([]);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
@@ -32,51 +34,6 @@ const App: React.FC = () => {
         return localStorage.getItem('showAttachmentPoints') === 'true';
     });
 
-
-    useEffect(() => {
-        const loadSvgContent = async () => {
-            const loadedLibrary = await Promise.all(
-                defaultShapesLibrary.map(async (shape) => {
-                    const response = await fetch(`./shapes/${shape.svgFile}`);
-                    const svgContent = await response.text();
-                    return { ...shape, svgContent };
-                })
-            );
-            setSvgLibrary(loadedLibrary);
-        };
-
-        loadSvgContent();
-    }, []);
-    
-    useEffect(() => {
-        const compiledSVG = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary, showAttachmentPoints);
-        setComposedSVG(compiledSVG);
-    }, [diagramComponents, canvasSize, svgLibrary, showAttachmentPoints]);
-
-    useEffect(() => {
-        localStorage.setItem('canvasSize', JSON.stringify(canvasSize));
-    }, [canvasSize]);
-
-    useEffect(() => {
-        localStorage.setItem('fileName', fileName);
-    }, [fileName]);
-
-    useEffect(() => {
-        localStorage.setItem('spreadsheetUrl', spreadsheetUrl);
-    }, [spreadsheetUrl]);
-
-    useEffect(() => {
-        localStorage.setItem('folderUrl', folderUrl);
-    }, [folderUrl]);
-
-    useEffect(() => {
-        localStorage.setItem('folderPath', folderPath);
-    }, [folderPath]);
-
-    useEffect(() => {
-        localStorage.setItem('showAttachmentPoints', showAttachmentPoints.toString());
-    }, [showAttachmentPoints]);
-
     // handle select 3D shape from Composition panel or SVG diagram
     const handleSelect3DShape = useCallback((id: string | null) => {
         setSelected3DShape(id);
@@ -91,7 +48,14 @@ const App: React.FC = () => {
         }
     }, [diagramComponents]);
 
-    const add3DShape = useCallback((shapeName: string, position: string, attachmentPoint: string | null) => {
+    const handleSelectedPosition = useCallback((position: string | null) => {
+        if (position) {
+            console.log(`App: ${position}`);
+            setSelectedPosition(position);    
+        }
+    }, [setSelectedPosition, selectedPosition]);
+
+    const handleAdd3DShape = useCallback((shapeName: string, position: string, attachmentPoint: string | null) => {
         const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, position, attachmentPoint, selected3DShape);
 
         if (result.newComponent) {
@@ -104,28 +68,50 @@ const App: React.FC = () => {
         }
     }, [diagramComponents, svgLibrary, selected3DShape]);
 
-    const add2DShape = useCallback((shapeName: string, attachTo: string) => {
+    const handleAdd2DShape = useCallback((shapeName: string, attachTo: string) => {
         const updatedComponents = diagramComponentsLib.add2DShape(diagramComponents, selected3DShape, shapeName, attachTo);
         setDiagramComponents(updatedComponents);
     }, [diagramComponents, selected3DShape]);
 
-    const remove3DShape = useCallback((id: string) => {
+    const handleRemove3DShape = useCallback((id: string) => {
         const updatedComponents = diagramComponentsLib.remove3DShape(diagramComponents, id);
         setDiagramComponents(updatedComponents);
 
         if (selected3DShape === id) {
             if (updatedComponents.length > 0) {
-                handleSelect3DShape(updatedComponents[updatedComponents.length-1].id);
+                handleSelect3DShape(updatedComponents[updatedComponents.length - 1].id);
             } else {
                 handleSelect3DShape(null);
             }
         }
     }, [diagramComponents, selected3DShape, handleSelect3DShape]);
 
-    const remove2DShape = useCallback((parentId: string, shapeIndex: number) => {
+    const handleRemove2DShape = useCallback((parentId: string, shapeIndex: number) => {
         const updatedComponents = diagramComponentsLib.remove2DShape(diagramComponents, parentId, shapeIndex);
         setDiagramComponents(updatedComponents);
     }, [diagramComponents]);
+
+    const handleCut3DShape = useCallback((id: string) => {
+        setDiagramComponents(prev => diagramComponentsLib.cut3DShape(prev, id));
+    }, []);
+
+    const handleCancelCut3DShape = useCallback((id: string) => {
+        setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
+    }, []);
+
+    const handlePaste3DShape = useCallback((id: string, selectedPosition: string, attachmentPoint: string | null) => {
+        if (selected3DShape) {
+            const result = diagramComponentsLib.paste3DShape(diagramComponents, id, selected3DShape, selectedPosition, attachmentPoint);
+            if (result.pastedComponent) {
+                setDiagramComponents(result.updatedComponents);
+                setSelected3DShape(result.pastedComponent.id);
+                const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.pastedComponent);
+                setAvailableAttachmentPoints(updatedAttachmentPoints);
+            } else {
+                console.error('Failed to paste new 3D shape');
+            }
+        }
+    }, [selected3DShape]);
 
     const getJsonFileName = useCallback((svgFileName: string) => {
         return svgFileName.replace(/\.svg$/, '.json');
@@ -240,18 +226,106 @@ const App: React.FC = () => {
         setShowAttachmentPoints(show);
     }, []);
 
+    const handleKeyboardShortcuts = useCallback(() => {
+        return createKeyboardShortcuts(
+            handleSaveDiagram,
+            handleRemove3DShape,
+            handleCut3DShape,
+            handlePaste3DShape,
+            selected3DShape,
+            diagramComponents,
+            selectedPosition,
+            selectedAttachmentPoint
+        );
+    }, [
+        handleSaveDiagram,
+        handleRemove3DShape,
+        handleCut3DShape,
+        handlePaste3DShape,
+        selected3DShape,
+        diagramComponents,
+        selectedPosition,
+        selectedAttachmentPoint
+    ]);
+
+    useEffect(() => {
+        const { handleKeyDown } = handleKeyboardShortcuts();
+        
+        const keyDownListener = (event: KeyboardEvent) => {
+            console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey);
+            handleKeyDown(event);
+        };
+
+        window.addEventListener('keydown', keyDownListener);
+        
+        return () => {
+            window.removeEventListener('keydown', keyDownListener);
+        };
+    }, [handleKeyboardShortcuts]);
+
+    useEffect(() => {
+        const loadSvgContent = async () => {
+            const loadedLibrary = await Promise.all(
+                defaultShapesLibrary.map(async (shape) => {
+                    const response = await fetch(`./shapes/${shape.svgFile}`);
+                    const svgContent = await response.text();
+                    return { ...shape, svgContent };
+                })
+            );
+            setSvgLibrary(loadedLibrary);
+        };
+
+        loadSvgContent();
+    }, []);
+
+    useEffect(() => {
+        const { svgContent } = diagramComponentsLib.compileDiagram(diagramComponents, canvasSize, svgLibrary, showAttachmentPoints);
+        setComposedSVG(svgContent);
+    }, [diagramComponents, canvasSize, svgLibrary, showAttachmentPoints]);
+
+    useEffect(() => {
+        localStorage.setItem('canvasSize', JSON.stringify(canvasSize));
+    }, [canvasSize]);
+
+    useEffect(() => {
+        localStorage.setItem('fileName', fileName);
+    }, [fileName]);
+
+    useEffect(() => {
+        localStorage.setItem('spreadsheetUrl', spreadsheetUrl);
+    }, [spreadsheetUrl]);
+
+    useEffect(() => {
+        localStorage.setItem('folderUrl', folderUrl);
+    }, [folderUrl]);
+
+    useEffect(() => {
+        localStorage.setItem('folderPath', folderPath);
+    }, [folderPath]);
+
+    useEffect(() => {
+        localStorage.setItem('showAttachmentPoints', showAttachmentPoints.toString());
+    }, [showAttachmentPoints]);
+
     return (
         <ImprovedLayout
             svgLibrary={svgLibrary}
             diagramComponents={diagramComponents}
             selected3DShape={selected3DShape}
-            canvasSize={canvasSize}
             composedSVG={composedSVG}
-            onAdd3DShape={add3DShape}
-            onAdd2DShape={add2DShape}
-            onRemove3DShape={remove3DShape}
-            onRemove2DShape={remove2DShape}
+            onAdd3DShape={handleAdd3DShape}
+            onAdd2DShape={handleAdd2DShape}
+            onRemove3DShape={handleRemove3DShape}
+            onRemove2DShape={handleRemove2DShape}
             onSelect3DShape={handleSelect3DShape}
+            selectedPosition={selectedPosition}
+            onSelectedPosition={setSelectedPosition}
+            selectedAttachmentPoint={selectedAttachmentPoint}
+            onSelectedAttachmentPoint={setSelectedAttachmentPoint}
+            onCut3DShape={handleCut3DShape}
+            onCancelCut3DShape={handleCancelCut3DShape}
+            onPaste3DShape={handlePaste3DShape}
+            canvasSize={canvasSize}
             onSetCanvasSize={handleSetCanvasSize}
             onUpdateSvgLibrary={setSvgLibrary}
             onDownloadSVG={handleDownloadSVG}

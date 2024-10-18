@@ -11,15 +11,22 @@ import { DiagramComponent, Shape } from './Types';
 interface ImprovedLayoutProps {
     svgLibrary: Shape[];
     diagramComponents: DiagramComponent[];
-    selected3DShape: string | null;
     canvasSize: { width: number; height: number };
+    onSetCanvasSize: (size: { width: number; height: number }) => void;
     composedSVG: string;
     onAdd3DShape: (shapeName: string, position: string, attachmentPoint: string | null) => void;
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
+    selected3DShape: string | null;
     onSelect3DShape: (id: string | null) => void;
-    onSetCanvasSize: (size: { width: number; height: number }) => void;
+    selectedPosition: string,
+    onSelectedPosition: (id: string) => void;
+    selectedAttachmentPoint: string | null,
+    onSelectedAttachmentPoint: (id: string | null) => void;
+    onCut3DShape: (id: string) => void;
+    onCancelCut3DShape: (id: string) => void;
+    onPaste3DShape: (id: string, selectedPosition: string, attachmentPoint: string | null) => void;
     onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
     onDownloadSVG: () => void;
     fileName: string;
@@ -51,7 +58,14 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onAdd2DShape,
     onRemove3DShape,
     onRemove2DShape,
+    onCut3DShape,
+    onCancelCut3DShape,
+    onPaste3DShape,
     onSelect3DShape,
+    selectedPosition,
+    onSelectedPosition,
+    selectedAttachmentPoint,
+    onSelectedAttachmentPoint,
     onSetCanvasSize,
     onUpdateSvgLibrary,
     onDownloadSVG,
@@ -78,17 +92,30 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const [isSaveLoadDialogOpen, setIsSaveLoadDialogOpen] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState<{ currentFile: string; loadedFiles: number; totalFiles: number } | null>(null);
     const [saveLoadMessage, setSaveLoadMessage] = useState<string | null>(null);
-    const [selectedPosition, setSelectedPosition] = useState<string>('top');
-    const [selectedAttachmentPoint, setSelectedAttachmentPoint] = useState<string>('none');
 
     const handleSelect3DShape = useCallback((id: string | null) => {
-        console.log('ImprovedLayout: Selecting 3D shape:', id);
         onSelect3DShape(id);
     }, [onSelect3DShape]);
+
+    const handleSelectedPosition = useCallback((position: string | null) => {
+        if (position) {
+            console.log(`Improved Layout: ${position}`);
+            onSelectedPosition(position);    
+        }
+    }, [onSelectedPosition, selectedPosition]);
+
+    const handleSelectedAttachmentPoint = useCallback((point: string | null) => {
+        onSelectedAttachmentPoint(point);
+        console.log('Improved Layout: selected attachment point',point);
+    }, [onSelectedAttachmentPoint, selectedAttachmentPoint]);
 
     const handleAdd3DShape = useCallback((shapeName: string) => {
         onAdd3DShape(shapeName, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
     }, [onAdd3DShape, selectedPosition, selectedAttachmentPoint]);
+
+    const handlePaste3DShape = useCallback((id: string) => {
+        onPaste3DShape(id, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
+    }, [onPaste3DShape, selectedPosition, selectedAttachmentPoint]);
 
     const handleLoadFromGoogleDrive = async () => {
         if (!spreadsheetUrl || !folderUrl) {
@@ -185,6 +212,9 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                             onRemove2DShape={onRemove2DShape}
                             onSelect3DShape={onSelect3DShape}
                             selected3DShape={selected3DShape}
+                            onCut3DShape={onCut3DShape}
+                            onCancelCut3DShape={onCancelCut3DShape}
+                            onPaste3DShape={handlePaste3DShape}
                         />
                     )}
                     {activePanel === 'settings' && (
@@ -220,9 +250,12 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     <SVGDisplay
                         svgContent={composedSVG}
                         selected3DShape={selected3DShape}
+                        diagramComponents={diagramComponents}
                         onSelect3DShape={handleSelect3DShape}
                         onGetBoundingBox={onGetBoundingBox}
                         canvasSize={canvasSize}
+                        setSelectedPosition={handleSelectedPosition}
+                        setSelectedAttachmentPoint={handleSelectedAttachmentPoint}
                     />
 
                     {/* Attachment Options Panel - slides behind the heading */}
@@ -233,9 +266,9 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     >
                         <AttachmentOptionsPanel
                             selectedPosition={selectedPosition}
-                            setSelectedPosition={setSelectedPosition}
+                            setSelectedPosition={handleSelectedPosition}
                             selectedAttachmentPoint={selectedAttachmentPoint}
-                            setSelectedAttachmentPoint={setSelectedAttachmentPoint}
+                            setSelectedAttachmentPoint={handleSelectedAttachmentPoint}
                             availableAttachmentPoints={availableAttachmentPoints}
                         />
                     </div>

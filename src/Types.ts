@@ -37,5 +37,6 @@ export interface DiagramComponent {
     attached2DShapes: Attached2DShape[];
     attachmentPoints: AttachmentPoint[];
     absolutePosition: Point;
+    cut: boolean;
 }
 

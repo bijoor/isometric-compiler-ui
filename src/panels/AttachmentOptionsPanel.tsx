@@ -5,7 +5,7 @@ import { RadixSelect } from '../components/ui/Select';
 interface AttachmentOptionsPanelProps {
     selectedPosition: string;
     setSelectedPosition: (position: string) => void;
-    selectedAttachmentPoint: string;
+    selectedAttachmentPoint: string | null;
     setSelectedAttachmentPoint: (point: string) => void;
     availableAttachmentPoints: string[];
 }
@@ -31,7 +31,7 @@ const AttachmentOptionsPanel: React.FC<AttachmentOptionsPanelProps> = ({
             const newFilteredPoints = availableAttachmentPoints.filter(point => point.startsWith(prefix));
             setFilteredAttachmentPoints(newFilteredPoints);
     
-            if (newFilteredPoints.length === 0 || !newFilteredPoints.includes(selectedAttachmentPoint)) {
+            if (selectedAttachmentPoint && (newFilteredPoints.length === 0 || !newFilteredPoints.includes(selectedAttachmentPoint))) {
                 setSelectedAttachmentPoint('none');
             }
         };
@@ -44,6 +44,7 @@ const AttachmentOptionsPanel: React.FC<AttachmentOptionsPanelProps> = ({
     ], [filteredAttachmentPoints]);
 
     const handlePositionChange = (value: string) => {
+        console.log(`Attachment Options: ${value}`);
         setSelectedPosition(value);
         setSelectedAttachmentPoint('none');
     };
@@ -63,7 +64,7 @@ const AttachmentOptionsPanel: React.FC<AttachmentOptionsPanelProps> = ({
                     <div className="w-48">
                         <RadixSelect
                             options={attachmentPointOptions}
-                            value={selectedAttachmentPoint}
+                            value={selectedAttachmentPoint || 'none'}
                             onChange={setSelectedAttachmentPoint}
                             placeholder="Select point"
                         />
