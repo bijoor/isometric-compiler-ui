@@ -9,9 +9,9 @@ type ShortcutAction = {
 
 export const createKeyboardShortcuts = (
     saveDiagram: () => Promise<void>,
-    remove3DShape: (id: string) => void,
-    cut3DShape: (id: string) => void,
-    paste3DShape: (id: string, selectedPosition: string, attachmentPoint: string | null) => void,
+    remove3DShape: (id: string | null) => void,
+    cut3DShape: (id: string | null) => void,
+    paste3DShape: (id: string | null) => void,
     selected3DShape: string | null,
     diagramComponents: DiagramComponent[],
     selectedPosition: string,
@@ -60,12 +60,10 @@ export const createKeyboardShortcuts = (
             modifierKey: true,
             description: `${isMac ? '⌘' : 'Ctrl'}+V: Paste cut 3D shape`,
             action: () => {
-                const cutShape = diagramComponents.find(c => c.cut);
-                if (cutShape && selected3DShape) {
-                    console.log('Pasting cut shape:', cutShape.id, 'onto:', selected3DShape, 'at:', selectedAttachmentPoint);
-                    paste3DShape(cutShape.id, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
+                if (selected3DShape) {
+                    paste3DShape(null);
                 } else {
-                    console.log('No cut shape available or no 3D shape selected for pasting');
+                    console.log('No 3D shape selected for pasting');
                 }
             }
         }

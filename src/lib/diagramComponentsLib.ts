@@ -34,6 +34,10 @@ export const add3DShape = (
 
         const attachmentPoints = extractAttachmentPoints(svgElement);
 
+        if (attachmentPoint === 'none') {
+            attachmentPoint = null;
+        }
+
         const newComponent: DiagramComponent = {
             id: newId,
             shape: shapeName,
@@ -79,6 +83,23 @@ export const add2DShape = (
     }
 };
 
+export const isFirst3DShape = (
+    diagramComponents: DiagramComponent[],
+    id: string
+): boolean => {
+    return (diagramComponents.length>0 && diagramComponents[0].id === id);
+}
+
+export const getFirstCut3DShape = (
+    diagramComponents: DiagramComponent[]
+): DiagramComponent | null => {
+    const cutComponents = diagramComponents.filter(component => component.cut);
+    if (cutComponents.length > 0) {
+        return cutComponents[0];
+    }
+    return null;
+}
+
 export const getSelected3DShape = (
     diagramComponents: DiagramComponent[],
     selected3DShape: string | null
@@ -109,6 +130,7 @@ export const remove3DShape = (
     diagramComponents: DiagramComponent[],
     id: string
 ): DiagramComponent[] => {
+    console.log(`App: remove 3D shape ${id}`);
     const dependentIds = findDependentShapes(diagramComponents, id);
     return diagramComponents.filter(component => !dependentIds.has(component.id));
 };
@@ -133,8 +155,19 @@ export const cut3DShape = (
     diagramComponents: DiagramComponent[],
     id: string
 ): DiagramComponent[] => {
-    const dependentIds = findDependentShapes(diagramComponents, id);
-    return diagramComponents.map(component =>
+    if (isFirst3DShape(diagramComponents,id)) {
+        // do not allow cut of first 3D shape
+        return diagramComponents;
+    }
+    let updatedComponents = diagramComponents;
+    const firstCut = getFirstCut3DShape(diagramComponents);
+    if (firstCut) {
+        console.log(`cancelling previously cut ${firstCut.id}`);
+        // cancel cut if previously cut object exists
+        updatedComponents = cancelCut(diagramComponents,firstCut.id);
+    }
+    const dependentIds = findDependentShapes(updatedComponents, id);
+    return updatedComponents.map(component =>
         dependentIds.has(component.id)
             ? { ...component, cut: true }
             : component
@@ -159,7 +192,7 @@ export const paste3DShape = (
     targetId: string,
     newPosition: DiagramComponent['position'],
     attachmentPoint: string | null,
-): { updatedComponents: DiagramComponent[], pastedComponent: DiagramComponent | null }  => {
+): { updatedComponents: DiagramComponent[], pastedComponent: DiagramComponent | null } => {
     const dependentIds = findDependentShapes(diagramComponents, id);
     let pastedComponent: DiagramComponent | null = null;
     let cutComponents: DiagramComponent[] = [];
@@ -428,7 +461,7 @@ export const findClosestAttachmentPoint = (
     }
 
     // Filter out attachment points starting with "attach-bottom" and "attach-back"
-    const validAttachmentPoints = component.attachmentPoints.filter(point => 
+    const validAttachmentPoints = component.attachmentPoints.filter(point =>
         !point.name.startsWith('attach-bottom') && !point.name.startsWith('attach-back')
     );
 

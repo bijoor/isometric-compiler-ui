@@ -9,6 +9,7 @@ interface DiagramComponentCardProps {
     parentIndex: number | null;
     isSelected: boolean;
     isCut: boolean;
+    isFirst: boolean;
     onSelect: (id: string) => void;
     onCut: (id: string) => void;
     onRemove: (id: string) => void;
@@ -24,6 +25,7 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
     parentIndex,
     isSelected,
     isCut,
+    isFirst,
     onSelect,
     onCut,
     onRemove,
@@ -41,6 +43,7 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                 <h3 className="text-lg font-semibold">{component.shape} (3D-{index+1})</h3>
                 <div>
                     {isCut ? (
+                        isFirst && (
                         <>
                             <Button onClick={(e) => handleWithStopPropagation(e, () => onCancelCut(component.id))} className="mr-2">
                                 Cancel
@@ -52,12 +55,13 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                                 Remove
                             </Button>
                         </>
+                        )
                     ) : (
                         <>
                             <Button 
                                 onClick={(e) => handleWithStopPropagation(e, () => onCut(component.id))} 
                                 className="mr-2"
-                                disabled={index === 0}
+                                disabled={isFirst}
                             >
                                 Cut
                             </Button>

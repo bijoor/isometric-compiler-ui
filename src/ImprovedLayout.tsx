@@ -14,7 +14,7 @@ interface ImprovedLayoutProps {
     canvasSize: { width: number; height: number };
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     composedSVG: string;
-    onAdd3DShape: (shapeName: string, position: string, attachmentPoint: string | null) => void;
+    onAdd3DShape: (shapeName: string) => void;
     onAdd2DShape: (shapeName: string, attachTo: string) => void;
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
@@ -26,7 +26,7 @@ interface ImprovedLayoutProps {
     onSelectedAttachmentPoint: (id: string | null) => void;
     onCut3DShape: (id: string) => void;
     onCancelCut3DShape: (id: string) => void;
-    onPaste3DShape: (id: string, selectedPosition: string, attachmentPoint: string | null) => void;
+    onPaste3DShape: (id: string) => void;
     onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
     onDownloadSVG: () => void;
     fileName: string;
@@ -107,15 +107,15 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const handleSelectedAttachmentPoint = useCallback((point: string | null) => {
         onSelectedAttachmentPoint(point);
         console.log('Improved Layout: selected attachment point',point);
-    }, [onSelectedAttachmentPoint, selectedAttachmentPoint]);
+    }, [onSelectedAttachmentPoint]);
 
     const handleAdd3DShape = useCallback((shapeName: string) => {
-        onAdd3DShape(shapeName, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
-    }, [onAdd3DShape, selectedPosition, selectedAttachmentPoint]);
+        onAdd3DShape(shapeName);
+    }, [onAdd3DShape]);
 
     const handlePaste3DShape = useCallback((id: string) => {
-        onPaste3DShape(id, selectedPosition, selectedAttachmentPoint === 'none' ? null : selectedAttachmentPoint);
-    }, [onPaste3DShape, selectedPosition, selectedAttachmentPoint]);
+        onPaste3DShape(id);
+    }, [onPaste3DShape]);
 
     const handleLoadFromGoogleDrive = async () => {
         if (!spreadsheetUrl || !folderUrl) {

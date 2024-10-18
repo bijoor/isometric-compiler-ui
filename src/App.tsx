@@ -36,27 +36,36 @@ const App: React.FC = () => {
 
     // handle select 3D shape from Composition panel or SVG diagram
     const handleSelect3DShape = useCallback((id: string | null) => {
-        setSelected3DShape(id);
-        if (id) {
-            const selectedComponent = diagramComponentsLib.getSelected3DShape(diagramComponents, id);
-            if (selectedComponent) {
-                const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(selectedComponent);
-                setAvailableAttachmentPoints(updatedAttachmentPoints);
-            }
-        } else {
+        if (!id) {
+            setSelected3DShape(null);
             setAvailableAttachmentPoints([]);
+        } else {
+            const selectedComponent = diagramComponentsLib.getSelected3DShape(diagramComponents, id);
+            if (selectedComponent && !selectedComponent.cut) {
+                    setSelected3DShape(selectedComponent.id);
+                    const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(selectedComponent);
+                    setAvailableAttachmentPoints(updatedAttachmentPoints);
+            }    
         }
     }, [diagramComponents]);
 
     const handleSelectedPosition = useCallback((position: string | null) => {
         if (position) {
-            console.log(`App: ${position}`);
+            console.log(`App position: ${position}`);
             setSelectedPosition(position);    
         }
     }, [setSelectedPosition, selectedPosition]);
 
-    const handleAdd3DShape = useCallback((shapeName: string, position: string, attachmentPoint: string | null) => {
-        const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, position, attachmentPoint, selected3DShape);
+    const handleSelectedAttachmentPoint = useCallback((point: string | null) => {
+        if (point) {
+            console.log(`App point: ${point}`);
+            setSelectedAttachmentPoint(point);    
+        }
+    }, [setSelectedAttachmentPoint, selectedAttachmentPoint]);
+
+    const handleAdd3DShape = useCallback((shapeName: string) => {
+        console.log(`App: add3DShape ${selectedPosition} ${selectedAttachmentPoint}`);
+        const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, selectedPosition, selectedAttachmentPoint, selected3DShape);
 
         if (result.newComponent) {
             setDiagramComponents(result.updatedComponents);
@@ -66,23 +75,28 @@ const App: React.FC = () => {
         } else {
             console.error('Failed to add new 3D shape');
         }
-    }, [diagramComponents, svgLibrary, selected3DShape]);
+    }, [diagramComponents, svgLibrary, selected3DShape, selectedPosition, selectedAttachmentPoint]);
 
     const handleAdd2DShape = useCallback((shapeName: string, attachTo: string) => {
         const updatedComponents = diagramComponentsLib.add2DShape(diagramComponents, selected3DShape, shapeName, attachTo);
         setDiagramComponents(updatedComponents);
     }, [diagramComponents, selected3DShape]);
 
-    const handleRemove3DShape = useCallback((id: string) => {
-        const updatedComponents = diagramComponentsLib.remove3DShape(diagramComponents, id);
-        setDiagramComponents(updatedComponents);
-
-        if (selected3DShape === id) {
-            if (updatedComponents.length > 0) {
-                handleSelect3DShape(updatedComponents[updatedComponents.length - 1].id);
-            } else {
-                handleSelect3DShape(null);
-            }
+    const handleRemove3DShape = useCallback((id: string | null) => {
+        if (!id) {
+            id = selected3DShape;
+        }
+        if (id) {
+            const updatedComponents = diagramComponentsLib.remove3DShape(diagramComponents, id);
+            setDiagramComponents(updatedComponents);
+    
+            if (selected3DShape === id) {
+                if (updatedComponents.length > 0) {
+                    handleSelect3DShape(updatedComponents[updatedComponents.length - 1].id);
+                } else {
+                    handleSelect3DShape(null);
+                }
+            }    
         }
     }, [diagramComponents, selected3DShape, handleSelect3DShape]);
 
@@ -91,27 +105,48 @@ const App: React.FC = () => {
         setDiagramComponents(updatedComponents);
     }, [diagramComponents]);
 
-    const handleCut3DShape = useCallback((id: string) => {
-        setDiagramComponents(prev => diagramComponentsLib.cut3DShape(prev, id));
+    const handleCut3DShape = useCallback((id: string | null) => {
+        if (!id) {
+            id = selected3DShape;
+        }
+        if (id) {
+            setDiagramComponents(prev => diagramComponentsLib.cut3DShape(prev, id));
+        }
     }, []);
 
-    const handleCancelCut3DShape = useCallback((id: string) => {
-        setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
-    }, []);
-
-    const handlePaste3DShape = useCallback((id: string, selectedPosition: string, attachmentPoint: string | null) => {
-        if (selected3DShape) {
-            const result = diagramComponentsLib.paste3DShape(diagramComponents, id, selected3DShape, selectedPosition, attachmentPoint);
-            if (result.pastedComponent) {
-                setDiagramComponents(result.updatedComponents);
-                setSelected3DShape(result.pastedComponent.id);
-                const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.pastedComponent);
-                setAvailableAttachmentPoints(updatedAttachmentPoints);
-            } else {
-                console.error('Failed to paste new 3D shape');
+    const handleCancelCut3DShape = useCallback((id: string | null) => {
+        if (!id) {
+            const firstCut =  diagramComponentsLib.getFirstCut3DShape(diagramComponents);
+            if (firstCut) {
+                id = firstCut.id;
             }
         }
-    }, [selected3DShape]);
+        if (id) {
+            setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
+        }
+    }, []);
+
+    const handlePaste3DShape = useCallback((id: string | null) => {
+        if (selected3DShape) {
+            if (!id) {
+                const firstCut =  diagramComponentsLib.getFirstCut3DShape(diagramComponents);
+                if (firstCut) {
+                    id = firstCut.id;
+                }
+            }
+            if (id) {
+                const result = diagramComponentsLib.paste3DShape(diagramComponents, id, selected3DShape, selectedPosition, selectedAttachmentPoint);
+                if (result.pastedComponent) {
+                    setDiagramComponents(result.updatedComponents);
+                    setSelected3DShape(result.pastedComponent.id);
+                    const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.pastedComponent);
+                    setAvailableAttachmentPoints(updatedAttachmentPoints);
+                } else {
+                    console.error('Failed to paste new 3D shape');
+                }    
+            }
+        }
+    }, [selected3DShape, selectedPosition, selectedAttachmentPoint]);
 
     const getJsonFileName = useCallback((svgFileName: string) => {
         return svgFileName.replace(/\.svg$/, '.json');
@@ -319,9 +354,9 @@ const App: React.FC = () => {
             onRemove2DShape={handleRemove2DShape}
             onSelect3DShape={handleSelect3DShape}
             selectedPosition={selectedPosition}
-            onSelectedPosition={setSelectedPosition}
+            onSelectedPosition={handleSelectedPosition}
             selectedAttachmentPoint={selectedAttachmentPoint}
-            onSelectedAttachmentPoint={setSelectedAttachmentPoint}
+            onSelectedAttachmentPoint={handleSelectedAttachmentPoint}
             onCut3DShape={handleCut3DShape}
             onCancelCut3DShape={handleCancelCut3DShape}
             onPaste3DShape={handlePaste3DShape}

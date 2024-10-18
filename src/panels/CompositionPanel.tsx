@@ -74,14 +74,15 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                 <h2 className="text-xl font-semibold p-4">Composition</h2>
                 <div className="flex-grow overflow-auto p-4">
                     <div className="space-y-4">
-                        {nonCutComponents.map((component, index) => (
+                        {nonCutComponents.map((component, ind) => (
                             <div key={component.id} ref={el => componentRefs.current[component.id] = el}>
                                 <DiagramComponentCard
                                     component={component}
-                                    index={index}
+                                    index={componentIndexMap[component.id]}
                                     parentIndex={getParentIndex(component)}
                                     isSelected={component.id === selected3DShape}
                                     isCut={false}
+                                    isFirst={ind === 0}
                                     onSelect={onSelect3DShape}
                                     onCut={handleCut3DShape}
                                     onRemove={onRemove3DShape}
@@ -101,7 +102,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                     <h3 className="text-lg font-semibold p-4">Cut Objects</h3>
                     <div className="overflow-auto max-h-48 p-4">
                         <div className="space-y-2">
-                            {cutComponents.map((component) => (
+                            {cutComponents.map((component, ind) => (
                                 <DiagramComponentCard
                                     key={component.id}
                                     component={component}
@@ -109,6 +110,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     parentIndex={getParentIndex(component)}
                                     isSelected={false}
                                     isCut={true}
+                                    isFirst={ind === 0}
                                     onSelect={() => {}} // No-op for cut objects
                                     onCut={() => {}} // No-op for cut objects
                                     onRemove={onRemove3DShape}
