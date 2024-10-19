@@ -18,6 +18,7 @@ const App: React.FC = () => {
     const [availableAttachmentPoints, setAvailableAttachmentPoints] = useState<string[]>([]);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [boundingBox, setBoundingBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+    const [copiedComponents, setCopiedComponents] = useState<DiagramComponent[] | null>(null);
     const [fileName, setFileName] = useState(() => {
         return localStorage.getItem('fileName') || 'diagram.svg';
     });
@@ -35,31 +36,41 @@ const App: React.FC = () => {
     });
 
     // handle select 3D shape from Composition panel or SVG diagram
+    const updateSelected3DShape = (selectedComponent: DiagramComponent | null) => {
+        if (selectedComponent && !selectedComponent.cut) {
+            setSelected3DShape(selectedComponent.id);
+            const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(selectedComponent);
+            setAvailableAttachmentPoints(updatedAttachmentPoints);
+            console.log(`App: set selected ${selectedComponent.id}`);
+        } else {
+            console.log('App: cannot select', selectedComponent);
+            setAvailableAttachmentPoints([]);
+        }
+    }
+
     const handleSelect3DShape = useCallback((id: string | null) => {
+        console.log(`App: Select component ${id}`);
+        console.log('App: diagram components',diagramComponents);
         if (!id) {
             setSelected3DShape(null);
             setAvailableAttachmentPoints([]);
         } else {
-            const selectedComponent = diagramComponentsLib.getSelected3DShape(diagramComponents, id);
-            if (selectedComponent && !selectedComponent.cut) {
-                    setSelected3DShape(selectedComponent.id);
-                    const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(selectedComponent);
-                    setAvailableAttachmentPoints(updatedAttachmentPoints);
-            }    
+            const selectedComponent = diagramComponentsLib.get3DShape(diagramComponents, id);
+            updateSelected3DShape(selectedComponent);
         }
     }, [diagramComponents]);
 
     const handleSelectedPosition = useCallback((position: string | null) => {
         if (position) {
-            console.log(`App position: ${position}`);
-            setSelectedPosition(position);    
+            console.log(`App: position: ${position}`);
+            setSelectedPosition(position);
         }
     }, [setSelectedPosition, selectedPosition]);
 
     const handleSelectedAttachmentPoint = useCallback((point: string | null) => {
         if (point) {
-            console.log(`App point: ${point}`);
-            setSelectedAttachmentPoint(point);    
+            console.log(`App: atttachment point: ${point}`);
+            setSelectedAttachmentPoint(point);
         }
     }, [setSelectedAttachmentPoint, selectedAttachmentPoint]);
 
@@ -68,10 +79,9 @@ const App: React.FC = () => {
         const result = diagramComponentsLib.add3DShape(diagramComponents, svgLibrary, shapeName, selectedPosition, selectedAttachmentPoint, selected3DShape);
 
         if (result.newComponent) {
+            console.log(`App: added 3D Shape ${result.newComponent.id}`);
             setDiagramComponents(result.updatedComponents);
-            setSelected3DShape(result.newComponent.id);
-            const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.newComponent);
-            setAvailableAttachmentPoints(updatedAttachmentPoints);
+            updateSelected3DShape(result.newComponent);
         } else {
             console.error('Failed to add new 3D shape');
         }
@@ -89,14 +99,15 @@ const App: React.FC = () => {
         if (id) {
             const updatedComponents = diagramComponentsLib.remove3DShape(diagramComponents, id);
             setDiagramComponents(updatedComponents);
-    
+
+            // if removed component was currently selected, then select last component or none
             if (selected3DShape === id) {
                 if (updatedComponents.length > 0) {
-                    handleSelect3DShape(updatedComponents[updatedComponents.length - 1].id);
+                    updateSelected3DShape(updatedComponents[updatedComponents.length - 1]);
                 } else {
-                    handleSelect3DShape(null);
+                    updateSelected3DShape(null);
                 }
-            }    
+            }
         }
     }, [diagramComponents, selected3DShape, handleSelect3DShape]);
 
@@ -109,44 +120,64 @@ const App: React.FC = () => {
         if (!id) {
             id = selected3DShape;
         }
+        // if any copied components, remove them
+        if (copiedComponents && copiedComponents.length>0) {
+            setCopiedComponents(null);
+        }
         if (id) {
             setDiagramComponents(prev => diagramComponentsLib.cut3DShape(prev, id));
+            setSelected3DShape(null);
         }
-    }, []);
+    }, [copiedComponents, setCopiedComponents]);
 
     const handleCancelCut3DShape = useCallback((id: string | null) => {
+        setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
+    }, []);
+
+    const handleCopy3DShape = useCallback((id: string | null) => {
         if (!id) {
-            const firstCut =  diagramComponentsLib.getFirstCut3DShape(diagramComponents);
-            if (firstCut) {
-                id = firstCut.id;
-            }
+            id = selected3DShape;
         }
         if (id) {
-            setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
+            const copiedShapes = diagramComponentsLib.copy3DShape(diagramComponents, id);
+            if (copiedShapes) {
+                setCopiedComponents(copiedShapes);
+                console.log('Copied components:', copiedShapes);
+            } else {
+                console.error('Failed to copy shape');
+            }
         }
-    }, []);
+    }, [diagramComponents, selected3DShape, setCopiedComponents]);
 
     const handlePaste3DShape = useCallback((id: string | null) => {
         if (selected3DShape) {
-            if (!id) {
-                const firstCut =  diagramComponentsLib.getFirstCut3DShape(diagramComponents);
-                if (firstCut) {
-                    id = firstCut.id;
-                }
+            let result = null;
+            // if any copied components, paste them
+            if (copiedComponents && copiedComponents.length > 0) {
+                result = diagramComponentsLib.pasteCopied3DShapes(
+                    diagramComponents,
+                    copiedComponents,
+                    selected3DShape,
+                    selectedPosition,
+                    selectedAttachmentPoint
+                );
+            } else {
+                result = diagramComponentsLib.pasteCut3DShapes(
+                    diagramComponents, 
+                    id, 
+                    selected3DShape, 
+                    selectedPosition, 
+                    selectedAttachmentPoint
+                );
             }
-            if (id) {
-                const result = diagramComponentsLib.paste3DShape(diagramComponents, id, selected3DShape, selectedPosition, selectedAttachmentPoint);
-                if (result.pastedComponent) {
-                    setDiagramComponents(result.updatedComponents);
-                    setSelected3DShape(result.pastedComponent.id);
-                    const updatedAttachmentPoints = diagramComponentsLib.updateAvailableAttachmentPoints(result.pastedComponent);
-                    setAvailableAttachmentPoints(updatedAttachmentPoints);
-                } else {
-                    console.error('Failed to paste new 3D shape');
-                }    
+            if (result.pastedComponent) {
+                setDiagramComponents(result.updatedComponents);
+                updateSelected3DShape(result.pastedComponent);
+            } else {
+                console.error('Failed to paste 3D shape');
             }
         }
-    }, [selected3DShape, selectedPosition, selectedAttachmentPoint]);
+    }, [selected3DShape, selectedPosition, selectedAttachmentPoint, copiedComponents, setCopiedComponents]);
 
     const getJsonFileName = useCallback((svgFileName: string) => {
         return svgFileName.replace(/\.svg$/, '.json');
@@ -177,8 +208,7 @@ const App: React.FC = () => {
             setErrorMessage(null);
 
             // Reset selection and update available attachment points
-            setSelected3DShape(null);
-            setAvailableAttachmentPoints([]);
+            updateSelected3DShape(null);
         } catch (error) {
             console.error('Error loading diagram:', error);
             setErrorMessage('Failed to load diagram. Please check the file and folder path, then try again.');
@@ -266,6 +296,7 @@ const App: React.FC = () => {
             handleSaveDiagram,
             handleRemove3DShape,
             handleCut3DShape,
+            handleCopy3DShape,
             handlePaste3DShape,
             selected3DShape,
             diagramComponents,
@@ -285,14 +316,14 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const { handleKeyDown } = handleKeyboardShortcuts();
-        
+
         const keyDownListener = (event: KeyboardEvent) => {
             console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey);
             handleKeyDown(event);
         };
 
         window.addEventListener('keydown', keyDownListener);
-        
+
         return () => {
             window.removeEventListener('keydown', keyDownListener);
         };
@@ -346,6 +377,7 @@ const App: React.FC = () => {
         <ImprovedLayout
             svgLibrary={svgLibrary}
             diagramComponents={diagramComponents}
+            copiedComponents={copiedComponents || []}
             selected3DShape={selected3DShape}
             composedSVG={composedSVG}
             onAdd3DShape={handleAdd3DShape}
@@ -358,6 +390,7 @@ const App: React.FC = () => {
             selectedAttachmentPoint={selectedAttachmentPoint}
             onSelectedAttachmentPoint={handleSelectedAttachmentPoint}
             onCut3DShape={handleCut3DShape}
+            onCopy3DShape={handleCopy3DShape}
             onCancelCut3DShape={handleCancelCut3DShape}
             onPaste3DShape={handlePaste3DShape}
             canvasSize={canvasSize}

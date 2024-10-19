@@ -9,9 +9,11 @@ interface DiagramComponentCardProps {
     parentIndex: number | null;
     isSelected: boolean;
     isCut: boolean;
+    isCopied: boolean;
     isFirst: boolean;
     onSelect: (id: string) => void;
     onCut: (id: string) => void;
+    onCopy: (id: string) => void;
     onRemove: (id: string) => void;
     onCancelCut: (id: string) => void;
     onPaste: (id: string) => void;
@@ -25,9 +27,11 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
     parentIndex,
     isSelected,
     isCut,
+    isCopied,
     isFirst,
     onSelect,
     onCut,
+    onCopy,
     onRemove,
     onCancelCut,
     onPaste,
@@ -57,7 +61,22 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                         </>
                         )
                     ) : (
+                        isCopied ? (
+                            isFirst && (
+                            <>
+                                <Button onClick={(e) => handleWithStopPropagation(e, () => onPaste(component.id))} className="mr-2">
+                                    Paste
+                                </Button>
+                            </>
+                            )
+                        ) : (
                         <>
+                            <Button 
+                                onClick={(e) => handleWithStopPropagation(e, () => onCopy(component.id))} 
+                                className="mr-2"
+                            >
+                                Copy
+                            </Button>
                             <Button 
                                 onClick={(e) => handleWithStopPropagation(e, () => onCut(component.id))} 
                                 className="mr-2"
@@ -69,10 +88,10 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                                 Remove
                             </Button>
                         </>
-                    )}
+                    ))}
                 </div>
             </div>
-            {!isCut && (
+            {!isCut && !isCopied && (
                 <>
                     <div className="grid grid-cols-2 gap-2 mb-2">
                         <div>

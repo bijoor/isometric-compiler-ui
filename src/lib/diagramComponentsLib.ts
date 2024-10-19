@@ -1,10 +1,172 @@
 import { DiagramComponent, Point, AttachmentPoint, Shape } from '../Types';
+import { toggleAttachmentPoints } from './svgUtils';
 
 declare global {
     interface Window {
         SVGElement: typeof SVGElement;
     }
 }
+
+export const isFirst3DShape = (
+    diagramComponents: DiagramComponent[],
+    id: string
+): boolean => {
+    return (diagramComponents.length > 0 && diagramComponents[0].id === id);
+}
+
+export const getFirstCut3DShape = (
+    diagramComponents: DiagramComponent[]
+): DiagramComponent | null => {
+    const cutComponents = diagramComponents.filter(component => component.cut);
+    if (cutComponents.length > 0) {
+        return cutComponents[0];
+    }
+    return null;
+}
+
+export const get3DShape = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null
+): DiagramComponent | null => {
+    if (selected3DShape === null) {
+        return null;
+    }
+    return diagramComponents.find(component => component.id === selected3DShape) || null;
+};
+
+const findDependentShapes = (
+    components: DiagramComponent[],
+    shapeId: string,
+    dependentIds: Set<string> = new Set()
+): Set<string> => {
+    dependentIds.add(shapeId);
+
+    components.forEach(component => {
+        if (component.relativeToId === shapeId) {
+            findDependentShapes(components, component.id, dependentIds);
+        }
+    });
+
+    return dependentIds;
+};
+
+export const extractAttachmentPoints = (svgElement: SVGElement): AttachmentPoint[] => {
+    const attachmentPoints: AttachmentPoint[] = [];
+    const circles = svgElement.querySelectorAll('circle[id^="attach-"]');
+
+    circles.forEach((circle) => {
+        const id = circle.getAttribute('id');
+        const cx = circle.getAttribute('cx');
+        const cy = circle.getAttribute('cy');
+
+        if (id && cx && cy) {
+            attachmentPoints.push({
+                name: id,
+                x: parseFloat(cx),
+                y: parseFloat(cy)
+            });
+        }
+    });
+
+    return attachmentPoints;
+};
+
+export const getAvailableAttachmentPoints = (
+    diagramComponents: DiagramComponent[],
+    selected3DShape: string | null
+): string[] => {
+    const selectedComponent = get3DShape(diagramComponents, selected3DShape);
+    if (selectedComponent) {
+        return updateAvailableAttachmentPoints(selectedComponent);
+    }
+    return [];
+};
+
+export const getAttachmentPoint = (component: DiagramComponent, pointName: string): Point | null => {
+    const point = component.attachmentPoints.find(p => p.name === pointName);
+    return point ? { x: point.x, y: point.y } : null;
+};
+
+export const calculateAbsolutePosition = (
+    component: DiagramComponent,
+    referenceComponent: DiagramComponent | null,
+    canvasSize: { width: number; height: number },
+    diagramComponents: DiagramComponent[]
+): Point => {
+    if (!referenceComponent) {
+        return { x: canvasSize.width / 2, y: canvasSize.height / 2 };
+    }
+
+    // If the reference component doesn't have an absolute position yet,
+    // calculate it recursively
+    if (!referenceComponent.absolutePosition) {
+        const refOfRef = diagramComponents.find(c => c.id === referenceComponent.relativeToId) || null;
+        referenceComponent.absolutePosition = calculateAbsolutePosition(
+            referenceComponent,
+            refOfRef,
+            canvasSize,
+            diagramComponents
+        );
+    }
+
+    const [positionType, attachmentPoint] = component.position.split('-');
+    const refAttachPoint = getAttachmentPoint(referenceComponent, `attach-${component.position}`);
+    const newPoint = (
+        positionType === 'top' ? 'bottom' : (
+            positionType === 'front' ? (
+                attachmentPoint === 'left' ? 'back-right' : 'back-left'
+            ) : (
+                attachmentPoint === 'left' ? 'front-right' : 'front-left'
+            )
+        )
+    );
+
+    const newShapeAttachPoint = getAttachmentPoint(component, `attach-${newPoint}`);
+
+    if (!refAttachPoint || !newShapeAttachPoint) {
+        console.warn(`Attachment points not found for ${component.id} or ${referenceComponent.id}`);
+        return referenceComponent.absolutePosition;
+    }
+
+    return {
+        x: referenceComponent.absolutePosition.x + refAttachPoint.x - newShapeAttachPoint.x,
+        y: referenceComponent.absolutePosition.y + refAttachPoint.y - newShapeAttachPoint.y
+    };
+};
+
+export const deepCloneComponentWithDependents = (
+    component: DiagramComponent,
+    diagramComponents: DiagramComponent[]
+): DiagramComponent[] => {
+    const clonedComponents: DiagramComponent[] = [];
+    const idMap = new Map<string, string>();
+
+    const cloneComponent = (comp: DiagramComponent): DiagramComponent => {
+        const newId = `shape-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        idMap.set(comp.id, newId);
+
+        const clonedComponent: DiagramComponent = {
+            ...comp,
+            id: newId,
+            relativeToId: comp.relativeToId ? idMap.get(comp.relativeToId) || comp.relativeToId : null,
+            attached2DShapes: comp.attached2DShapes.map(shape => ({ ...shape })),
+            attachmentPoints: comp.attachmentPoints.map(point => ({ ...point })),
+            absolutePosition: { ...comp.absolutePosition },
+        };
+
+        clonedComponents.push(clonedComponent);
+
+        // Find and clone dependent shapes
+        const dependentShapes = diagramComponents.filter(c => c.relativeToId === comp.id);
+        dependentShapes.forEach(depShape => cloneComponent(depShape));
+
+        return clonedComponent;
+    };
+
+    cloneComponent(component);
+
+    return clonedComponents;
+};
 
 export const add3DShape = (
     diagramComponents: DiagramComponent[],
@@ -14,7 +176,7 @@ export const add3DShape = (
     attachmentPoint: string | null,
     selected3DShape: string | null
 ): { updatedComponents: DiagramComponent[], newComponent: DiagramComponent | null } => {
-    const newId = `shape-${Date.now()}`;
+    const newId = `shape-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     if (diagramComponents.length === 0 || selected3DShape !== null) {
         const shape = svgLibrary.find(s => s.name === shapeName);
@@ -83,49 +245,6 @@ export const add2DShape = (
     }
 };
 
-export const isFirst3DShape = (
-    diagramComponents: DiagramComponent[],
-    id: string
-): boolean => {
-    return (diagramComponents.length>0 && diagramComponents[0].id === id);
-}
-
-export const getFirstCut3DShape = (
-    diagramComponents: DiagramComponent[]
-): DiagramComponent | null => {
-    const cutComponents = diagramComponents.filter(component => component.cut);
-    if (cutComponents.length > 0) {
-        return cutComponents[0];
-    }
-    return null;
-}
-
-export const getSelected3DShape = (
-    diagramComponents: DiagramComponent[],
-    selected3DShape: string | null
-): DiagramComponent | null => {
-    if (selected3DShape === null) {
-        return null;
-    }
-    return diagramComponents.find(component => component.id === selected3DShape) || null;
-};
-
-const findDependentShapes = (
-    components: DiagramComponent[],
-    shapeId: string,
-    dependentIds: Set<string> = new Set()
-): Set<string> => {
-    dependentIds.add(shapeId);
-
-    components.forEach(component => {
-        if (component.relativeToId === shapeId) {
-            findDependentShapes(components, component.id, dependentIds);
-        }
-    });
-
-    return dependentIds;
-};
-
 export const remove3DShape = (
     diagramComponents: DiagramComponent[],
     id: string
@@ -155,17 +274,12 @@ export const cut3DShape = (
     diagramComponents: DiagramComponent[],
     id: string
 ): DiagramComponent[] => {
-    if (isFirst3DShape(diagramComponents,id)) {
+    if (isFirst3DShape(diagramComponents, id)) {
         // do not allow cut of first 3D shape
         return diagramComponents;
     }
-    let updatedComponents = diagramComponents;
-    const firstCut = getFirstCut3DShape(diagramComponents);
-    if (firstCut) {
-        console.log(`cancelling previously cut ${firstCut.id}`);
-        // cancel cut if previously cut object exists
-        updatedComponents = cancelCut(diagramComponents,firstCut.id);
-    }
+    // cancel any previous cut objects
+    let updatedComponents = cancelCut(diagramComponents, null);
     const dependentIds = findDependentShapes(updatedComponents, id);
     return updatedComponents.map(component =>
         dependentIds.has(component.id)
@@ -176,30 +290,68 @@ export const cut3DShape = (
 
 export const cancelCut = (
     diagramComponents: DiagramComponent[],
-    id: string
+    id: string | null
 ): DiagramComponent[] => {
-    const dependentIds = findDependentShapes(diagramComponents, id);
-    return diagramComponents.map(component =>
-        dependentIds.has(component.id)
-            ? { ...component, cut: false }
-            : component
-    );
+    if (!id) {
+        const firstCut = getFirstCut3DShape(diagramComponents);
+        if (firstCut) {
+            id = firstCut.id;
+        }
+    }
+    if (id) {
+        const dependentIds = findDependentShapes(diagramComponents, id);
+        return diagramComponents.map(component =>
+            dependentIds.has(component.id)
+                ? { ...component, cut: false }
+                : component
+        );    
+    }
+    return diagramComponents;
 };
 
-export const paste3DShape = (
+export const copy3DShape = (
     diagramComponents: DiagramComponent[],
-    id: string,
+    id: string
+): DiagramComponent[] => {
+    // cancel any previous cut objects
+    let updatedComponents = cancelCut(diagramComponents, null);
+
+    const componentToCopy = updatedComponents.find(component => component.id === id);
+    if (!componentToCopy) {
+        console.error(`Component with id ${id} not found`);
+        return [];
+    }
+    return deepCloneComponentWithDependents(componentToCopy, updatedComponents);
+};
+
+export const pasteCut3DShapes = (
+    diagramComponents: DiagramComponent[],
+    id: string | null,
     targetId: string,
     newPosition: DiagramComponent['position'],
     attachmentPoint: string | null,
 ): { updatedComponents: DiagramComponent[], pastedComponent: DiagramComponent | null } => {
+    
+    // if no id was specified, get the first cut object
+    if (!id) {
+        const firstCut =  getFirstCut3DShape(diagramComponents);
+        if (firstCut) {
+            id = firstCut.id;
+        } else {
+            return {
+                updatedComponents: diagramComponents,
+                pastedComponent: null
+            }
+        }
+    }
+
     const dependentIds = findDependentShapes(diagramComponents, id);
     let pastedComponent: DiagramComponent | null = null;
     let cutComponents: DiagramComponent[] = [];
     let nonCutComponents: DiagramComponent[] = [];
 
     console.log(`pasting object ${id} on ${targetId} at ${newPosition} ${attachmentPoint}`);
-    
+
     if (attachmentPoint === 'none') {
         attachmentPoint = null;
     }
@@ -207,27 +359,62 @@ export const paste3DShape = (
     // Separate cut and non-cut components
     diagramComponents.forEach(component => {
         if (dependentIds.has(component.id)) {
-            cutComponents.push({
-                ...component,
-                cut: false,
-                relativeToId: component.id === id ? targetId : component.relativeToId,
-                position: component.id === id ? (attachmentPoint || newPosition) as DiagramComponent['position'] : component.position
-            });
-            if (component.id === id) {
-                pastedComponent = cutComponents[cutComponents.length - 1];
-            }
+            cutComponents.push({ ...component, cut: false });
         } else {
             nonCutComponents.push(component);
         }
     });
 
-    // Find all dependent objects of the target
-    const targetDependentIds = findDependentShapes(nonCutComponents, targetId);
+    return pasteCopied3DShapes(nonCutComponents,cutComponents,targetId,newPosition,attachmentPoint);
+
+};
+
+export const pasteCopied3DShapes = (
+    diagramComponents: DiagramComponent[],
+    copiedComponents: DiagramComponent[],
+    targetId: string,
+    position: string,
+    attachmentPoint: string | null
+): { updatedComponents: DiagramComponent[], pastedComponent: DiagramComponent | null } => {
+    if (copiedComponents.length === 0) {
+        return { updatedComponents: diagramComponents, pastedComponent: null };
+    }
+
+    if (attachmentPoint === 'none') {
+        attachmentPoint = null;
+    }
+
+    let componentsToPaste = copiedComponents;
+
+    // check if the first copied component has an id that already exists in diagramComponents,
+    // then we are re-pasting the same copied elements. So re-clone them.
+    const componentExists = get3DShape(diagramComponents,copiedComponents[0].id);
+    if (componentExists) {
+        // create a new copy
+        console.log('component copy already pasted... re-copying');
+        componentsToPaste = copy3DShape(copiedComponents,copiedComponents[0].id);
+    }
+    const pastedComponents: DiagramComponent[] = componentsToPaste.map((component, index) => {
+        if (index === 0) {
+            // Only update the first component's relativeToId and position
+            return {
+                ...component,
+                relativeToId: targetId,
+                position: (attachmentPoint || position) as DiagramComponent['position'],
+            };
+        } else {
+            // Keep other components unchanged
+            return { ...component };
+        }
+    });
+
+    // Find all dependent objects of the target, so we can insert the pasted components at the end
+    const targetDependentIds = findDependentShapes(diagramComponents, targetId);
 
     // Find the index of the last dependent object of the target
     let insertIndex = -1;
-    for (let i = nonCutComponents.length - 1; i >= 0; i--) {
-        if (targetDependentIds.has(nonCutComponents[i].id)) {
+    for (let i = diagramComponents.length - 1; i >= 0; i--) {
+        if (targetDependentIds.has(diagramComponents[i].id)) {
             insertIndex = i + 1;
             break;
         }
@@ -235,119 +422,19 @@ export const paste3DShape = (
 
     // If no dependents were found, insert after the target
     if (insertIndex === -1) {
-        insertIndex = nonCutComponents.findIndex(c => c.id === targetId) + 1;
+        insertIndex = diagramComponents.findIndex(c => c.id === targetId) + 1;
     }
 
     // Insert cut components after the last dependent of the target
     const updatedComponents = [
-        ...nonCutComponents.slice(0, insertIndex),
-        ...cutComponents,
-        ...nonCutComponents.slice(insertIndex)
+        ...diagramComponents.slice(0, insertIndex),
+        ...pastedComponents,
+        ...diagramComponents.slice(insertIndex)
     ];
 
     return {
         updatedComponents,
-        pastedComponent
-    };
-};
-
-export const getAvailableAttachmentPoints = (
-    diagramComponents: DiagramComponent[],
-    selected3DShape: string | null
-): string[] => {
-    const selectedComponent = getSelected3DShape(diagramComponents, selected3DShape);
-    if (selectedComponent) {
-        return updateAvailableAttachmentPoints(selectedComponent);
-    }
-    return [];
-};
-
-export const extractAttachmentPoints = (svgElement: SVGElement): AttachmentPoint[] => {
-    const attachmentPoints: AttachmentPoint[] = [];
-    const circles = svgElement.querySelectorAll('circle[id^="attach-"]');
-
-    circles.forEach((circle) => {
-        const id = circle.getAttribute('id');
-        const cx = circle.getAttribute('cx');
-        const cy = circle.getAttribute('cy');
-
-        if (id && cx && cy) {
-            attachmentPoints.push({
-                name: id,
-                x: parseFloat(cx),
-                y: parseFloat(cy)
-            });
-        }
-    });
-
-    return attachmentPoints;
-};
-
-export const toggleAttachmentPoints = (svgElement: SVGElement, show: boolean): SVGElement => {
-
-    // Select all circles with ids starting with "attach-"
-    const attachmentPoints = svgElement.querySelectorAll('circle[id^="attach-"]');
-
-    attachmentPoints.forEach((point) => {
-        if (show) {
-            point.removeAttribute('display');
-        } else {
-            point.setAttribute('display', 'none');
-        }
-    });
-
-    return svgElement;
-};
-
-export const getAttachmentPoint = (component: DiagramComponent, pointName: string): Point | null => {
-    const point = component.attachmentPoints.find(p => p.name === pointName);
-    return point ? { x: point.x, y: point.y } : null;
-};
-
-export const calculateAbsolutePosition = (
-    component: DiagramComponent,
-    referenceComponent: DiagramComponent | null,
-    canvasSize: { width: number; height: number },
-    allComponents: DiagramComponent[]
-): Point => {
-    if (!referenceComponent) {
-        return { x: canvasSize.width / 2, y: canvasSize.height / 2 };
-    }
-
-    // If the reference component doesn't have an absolute position yet,
-    // calculate it recursively
-    if (!referenceComponent.absolutePosition) {
-        const refOfRef = allComponents.find(c => c.id === referenceComponent.relativeToId) || null;
-        referenceComponent.absolutePosition = calculateAbsolutePosition(
-            referenceComponent,
-            refOfRef,
-            canvasSize,
-            allComponents
-        );
-    }
-
-    const [positionType, attachmentPoint] = component.position.split('-');
-    const refAttachPoint = getAttachmentPoint(referenceComponent, `attach-${component.position}`);
-    const newPoint = (
-        positionType === 'top' ? 'bottom' : (
-            positionType === 'front' ? (
-                attachmentPoint === 'left' ? 'back-right' : 'back-left'
-            ) : (
-                attachmentPoint === 'left' ? 'front-right' : 'front-left'
-            )
-        )
-    );
-
-    const newShapeAttachPoint = getAttachmentPoint(component, `attach-${newPoint}`);
-
-    if (!refAttachPoint || !newShapeAttachPoint) {
-        console.warn(`Attachment points not found for ${component.id} or ${referenceComponent.id}`);
-        return referenceComponent.absolutePosition;
-    }
-
-    return {
-        x: referenceComponent.absolutePosition.x + refAttachPoint.x - newShapeAttachPoint.x,
-        y: referenceComponent.absolutePosition.y + refAttachPoint.y - newShapeAttachPoint.y
+        pastedComponent: pastedComponents[0]
     };
 };
 

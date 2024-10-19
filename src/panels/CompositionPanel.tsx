@@ -4,10 +4,12 @@ import DiagramComponentCard from './DiagramComponentCard';
 
 interface CompositionPanelProps {
     diagramComponents: DiagramComponent[];
+    copiedComponents: DiagramComponent[];
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
     onSelect3DShape: (id: string) => void;
     onCut3DShape: (id: string) => void;
+    onCopy3DShape: (id: string) => void;
     onCancelCut3DShape: (id: string) => void;
     onPaste3DShape: (id: string) => void;
     selected3DShape: string | null;
@@ -15,10 +17,12 @@ interface CompositionPanelProps {
 
 const CompositionPanel: React.FC<CompositionPanelProps> = ({
     diagramComponents,
+    copiedComponents,
     onRemove3DShape,
     onRemove2DShape,
     onSelect3DShape,
     onCut3DShape,
+    onCopy3DShape,
     onCancelCut3DShape,
     onPaste3DShape,
     selected3DShape,
@@ -82,9 +86,11 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     parentIndex={getParentIndex(component)}
                                     isSelected={component.id === selected3DShape}
                                     isCut={false}
+                                    isCopied={false}
                                     isFirst={ind === 0}
                                     onSelect={onSelect3DShape}
-                                    onCut={handleCut3DShape}
+                                    onCut={onCut3DShape}
+                                    onCopy={onCopy3DShape}
                                     onRemove={onRemove3DShape}
                                     onCancelCut={onCancelCut3DShape}
                                     onPaste={onPaste3DShape}
@@ -96,7 +102,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                     </div>
                 </div>
             </div>
-            
+
             {cutComponents.length > 0 && (
                 <div className="border-t border-gray-700">
                     <h3 className="text-lg font-semibold p-4">Cut Objects</h3>
@@ -110,9 +116,11 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     parentIndex={getParentIndex(component)}
                                     isSelected={false}
                                     isCut={true}
+                                    isCopied={false}
                                     isFirst={ind === 0}
-                                    onSelect={() => {}} // No-op for cut objects
-                                    onCut={() => {}} // No-op for cut objects
+                                    onSelect={() => { }} // No-op for cut objects
+                                    onCut={() => { }} // No-op for cut objects
+                                    onCopy={() => { }} // No-op for cut objects
                                     onRemove={onRemove3DShape}
                                     onCancelCut={onCancelCut3DShape}
                                     onPaste={onPaste3DShape}
@@ -124,6 +132,37 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                     </div>
                 </div>
             )}
+
+            {copiedComponents.length > 0 && (
+                <div className="border-t border-gray-700">
+                    <h3 className="text-lg font-semibold p-4">Copied Objects</h3>
+                    <div className="overflow-auto max-h-48 p-4">
+                        <div className="space-y-2">
+                            {copiedComponents.map((component, ind) => (
+                                <DiagramComponentCard
+                                    key={component.id}
+                                    component={component}
+                                    index={ind}
+                                    parentIndex={getParentIndex(component)}
+                                    isSelected={false}
+                                    isCut={false}
+                                    isCopied={true}
+                                    isFirst={ind === 0}
+                                    onSelect={() => { }} // No-op for copied objects
+                                    onCut={() => { }} // No-op for copied objects
+                                    onCopy={() => { }} // No-op for copied objects
+                                    onRemove={() => { }} // No-op for copied objects
+                                    onCancelCut={() => { }} // No-op for copied objects
+                                    onPaste={onPaste3DShape}
+                                    onRemove2DShape={() => { }} // No-op for copied objects
+                                    onScrollToParent={handleScrollToParent}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

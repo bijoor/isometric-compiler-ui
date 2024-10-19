@@ -111,3 +111,19 @@ export const clipSVGToContents = (
 
     return resultSvg;
 };
+
+export const toggleAttachmentPoints = (svgElement: SVGElement, show: boolean): SVGElement => {
+
+    // Select all circles with ids starting with "attach-"
+    const attachmentPoints = svgElement.querySelectorAll('circle[id^="attach-"]');
+
+    attachmentPoints.forEach((point) => {
+        if (show) {
+            point.removeAttribute('display');
+        } else {
+            point.setAttribute('display', 'none');
+        }
+    });
+
+    return svgElement;
+};

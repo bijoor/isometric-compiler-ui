@@ -11,6 +11,7 @@ import { DiagramComponent, Shape } from './Types';
 interface ImprovedLayoutProps {
     svgLibrary: Shape[];
     diagramComponents: DiagramComponent[];
+    copiedComponents: DiagramComponent[];
     canvasSize: { width: number; height: number };
     onSetCanvasSize: (size: { width: number; height: number }) => void;
     composedSVG: string;
@@ -25,6 +26,7 @@ interface ImprovedLayoutProps {
     selectedAttachmentPoint: string | null,
     onSelectedAttachmentPoint: (id: string | null) => void;
     onCut3DShape: (id: string) => void;
+    onCopy3DShape: (id: string) => void;
     onCancelCut3DShape: (id: string) => void;
     onPaste3DShape: (id: string) => void;
     onUpdateSvgLibrary: (newLibrary: Shape[]) => void;
@@ -51,6 +53,7 @@ interface ImprovedLayoutProps {
 const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     svgLibrary,
     diagramComponents,
+    copiedComponents,
     selected3DShape,
     canvasSize,
     composedSVG,
@@ -59,6 +62,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     onRemove3DShape,
     onRemove2DShape,
     onCut3DShape,
+    onCopy3DShape,
     onCancelCut3DShape,
     onPaste3DShape,
     onSelect3DShape,
@@ -94,24 +98,29 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
     const [saveLoadMessage, setSaveLoadMessage] = useState<string | null>(null);
 
     const handleSelect3DShape = useCallback((id: string | null) => {
+        console.log(`Improved Layout: selected 3D Shape ${id}`);
         onSelect3DShape(id);
     }, [onSelect3DShape]);
 
     const handleSelectedPosition = useCallback((position: string | null) => {
         if (position) {
-            console.log(`Improved Layout: ${position}`);
+            console.log(`Improved Layout: position ${position}`);
             onSelectedPosition(position);    
         }
     }, [onSelectedPosition, selectedPosition]);
 
     const handleSelectedAttachmentPoint = useCallback((point: string | null) => {
         onSelectedAttachmentPoint(point);
-        console.log('Improved Layout: selected attachment point',point);
+        console.log('Improved Layout: attachment point',point);
     }, [onSelectedAttachmentPoint]);
 
     const handleAdd3DShape = useCallback((shapeName: string) => {
         onAdd3DShape(shapeName);
     }, [onAdd3DShape]);
+
+    const handleCopy3DShape = useCallback((id: string) => {
+        onCopy3DShape(id);
+    }, [onCopy3DShape]);
 
     const handlePaste3DShape = useCallback((id: string) => {
         onPaste3DShape(id);
@@ -208,11 +217,13 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                     {activePanel === 'composition' && (
                         <CompositionPanel
                             diagramComponents={diagramComponents}
+                            copiedComponents={copiedComponents}
                             onRemove3DShape={onRemove3DShape}
                             onRemove2DShape={onRemove2DShape}
                             onSelect3DShape={onSelect3DShape}
                             selected3DShape={selected3DShape}
                             onCut3DShape={onCut3DShape}
+                            onCopy3DShape={handleCopy3DShape}
                             onCancelCut3DShape={onCancelCut3DShape}
                             onPaste3DShape={handlePaste3DShape}
                         />

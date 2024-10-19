@@ -11,6 +11,7 @@ export const createKeyboardShortcuts = (
     saveDiagram: () => Promise<void>,
     remove3DShape: (id: string | null) => void,
     cut3DShape: (id: string | null) => void,
+    copy3DShape: (id : string | null) => void,
     paste3DShape: (id: string | null) => void,
     selected3DShape: string | null,
     diagramComponents: DiagramComponent[],
@@ -50,6 +51,19 @@ export const createKeyboardShortcuts = (
                 if (selected3DShape) {
                     console.log('Cutting selected 3D shape:', selected3DShape);
                     cut3DShape(selected3DShape);
+                } else {
+                    console.log('No 3D shape selected for cutting');
+                }
+            }
+        },
+        {
+            key: 'c',
+            modifierKey: true,
+            description: `${isMac ? '⌘' : 'Ctrl'}+V: Cut selected 3D shape`,
+            action: () => {
+                if (selected3DShape) {
+                    console.log('Copying selected 3D shape:', selected3DShape);
+                    copy3DShape(selected3DShape);
                 } else {
                     console.log('No 3D shape selected for cutting');
                 }

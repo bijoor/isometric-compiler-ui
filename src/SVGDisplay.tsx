@@ -88,6 +88,7 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
     }, [svgContent, viewBox]);
 
     useEffect(() => {
+        console.log(`SVG Display: selected 3D shape ${selected3DShape}`);
         if (svgRef.current) {
             const svg = svgRef.current;
 
