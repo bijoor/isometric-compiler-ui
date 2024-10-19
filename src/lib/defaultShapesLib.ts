@@ -9,29 +9,64 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "microservice",
-    svgFile: "cubical-base.svg",
-    type: "3D",
-    attachTo: "",
-    svgContent: ""
-  },
-  {
-    name: "application",
-    svgFile: "cuboidal-base.svg",
+    name: "service",
+    svgFile: "service3D.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
   },
   {
     name: "database",
-    svgFile: "cylinder.svg",
+    svgFile: "database3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "glass box",
+    svgFile: "glassbox.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
   },
   {
     name: "monitor",
-    svgFile: "monitor.svg",
+    svgFile: "monitor3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "glass-cylinder",
+    svgFile: "glass-cylinder3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "laptop",
+    svgFile: "laptop3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "funnel",
+    svgFile: "funnel3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "mainframe",
+    svgFile: "mainframe3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "connectors",
+    svgFile: "connectors3D.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
@@ -44,24 +79,24 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "grill-left",
-    svgFile: "grill-left2D.svg",
+    name: "flowchart",
+    svgFile: "flowchart2D.svg",
     type: "2D",
-    attachTo: "front-left",
+    attachTo: "top",
     svgContent: ""
   },
   {
-    name: "grill-right",
-    svgFile: "grill-right2D.svg",
+    name: "vectors",
+    svgFile: "vectors2D.svg",
     type: "2D",
-    attachTo: "front-right",
+    attachTo: "top",
     svgContent: ""
   },
   {
-    name: "dial-left",
-    svgFile: "dial-left2D.svg",
+    name: "ui-on-laptop",
+    svgFile: "ui-on-screen2D.svg",
     type: "2D",
-    attachTo: "front-left",
+    attachTo: "screen",
     svgContent: ""
   },
   {
@@ -72,10 +107,31 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "bits-on-screen",
-    svgFile: "bits-on-screen2D.svg",
+    name: "jigsaw",
+    svgFile: "jigsaw2D.svg",
     type: "2D",
-    attachTo: "screen",
+    attachTo: "top",
+    svgContent: ""
+  },
+  {
+    name: "query-vectors",
+    svgFile: "query-vectors2D.svg",
+    type: "2D",
+    attachTo: "top",
+    svgContent: ""
+  },
+  {
+    name: "graph",
+    svgFile: "graph2D.svg",
+    type: "2D",
+    attachTo: "top",
+    svgContent: ""
+  },
+  {
+    name: "spools",
+    svgFile: "spools2D.svg",
+    type: "2D",
+    attachTo: "panel",
     svgContent: ""
   },
 ];
