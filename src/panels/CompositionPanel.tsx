@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { DiagramComponent } from '../Types';
+import { DiagramComponent, Shape } from '../Types';
 import DiagramComponentCard from './DiagramComponentCard';
+import SVGPreview from '../components/ui/SVGPreview';
 
 interface CompositionPanelProps {
     diagramComponents: DiagramComponent[];
     copiedComponents: DiagramComponent[];
+    svgLibrary: Shape[];
     onRemove3DShape: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
     onSelect3DShape: (id: string) => void;
@@ -18,6 +20,7 @@ interface CompositionPanelProps {
 const CompositionPanel: React.FC<CompositionPanelProps> = ({
     diagramComponents,
     copiedComponents,
+    svgLibrary,
     onRemove3DShape,
     onRemove2DShape,
     onSelect3DShape,
@@ -60,6 +63,11 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
         return component.relativeToId !== null ? componentIndexMap[component.relativeToId] : null;
     };
 
+    const getSVGContent = (shapeName: string): string => {
+        const shape = svgLibrary.find(s => s.name === shapeName);
+        return shape ? shape.svgContent : '';
+    };
+
     const nonCutComponents = diagramComponents.filter(component => !component.cut);
     const cutComponents = diagramComponents.filter(component => component.cut);
 
@@ -96,6 +104,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     onPaste={onPaste3DShape}
                                     onRemove2DShape={onRemove2DShape}
                                     onScrollToParent={handleScrollToParent}
+                                    svgPreview={<SVGPreview svgContent={getSVGContent(component.shape)} className="w-12 h-12" />}
                                 />
                             </div>
                         ))}
@@ -126,6 +135,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     onPaste={onPaste3DShape}
                                     onRemove2DShape={onRemove2DShape}
                                     onScrollToParent={handleScrollToParent}
+                                    svgPreview={<SVGPreview svgContent={getSVGContent(component.shape)} className="w-12 h-12" />}
                                 />
                             ))}
                         </div>
@@ -156,6 +166,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     onPaste={onPaste3DShape}
                                     onRemove2DShape={() => { }} // No-op for copied objects
                                     onScrollToParent={handleScrollToParent}
+                                    svgPreview={<SVGPreview svgContent={getSVGContent(component.shape)} className="w-12 h-12" />}
                                 />
                             ))}
                         </div>

@@ -218,6 +218,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                         <CompositionPanel
                             diagramComponents={diagramComponents}
                             copiedComponents={copiedComponents}
+                            svgLibrary={svgLibrary}
                             onRemove3DShape={onRemove3DShape}
                             onRemove2DShape={onRemove2DShape}
                             onSelect3DShape={onSelect3DShape}

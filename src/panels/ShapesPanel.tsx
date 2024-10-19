@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { DiagramComponent, Shape } from '../Types';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/Accordion';
+import SVGPreview from '../components/ui/SVGPreview';
 
 interface ShapesPanelProps {
     svgLibrary: Shape[];
@@ -34,6 +35,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
                 <table className="w-full">
                     <thead className="sticky top-0 bg-gray-800">
                         <tr>
+                            <th className="text-left">Preview</th>
                             <th className="text-left">Name</th>
                             <th className="w-20 text-right">Action</th>
                         </tr>
@@ -41,6 +43,9 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
                     <tbody>
                         {svgLibrary.filter(shape => shape.type === '3D').map(shape => (
                             <tr key={shape.name}>
+                                <td className="w-16">
+                                    <SVGPreview svgContent={shape.svgContent} className="w-12 h-12 mr-2" />
+                                </td>
                                 <td>{shape.name}</td>
                                 <td className="text-right">
                                     <Button
@@ -63,6 +68,7 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
             <table className="w-full">
                 <thead className="sticky top-0 bg-gray-800">
                     <tr>
+                        <th className="text-left">Preview</th>
                         <th className="text-left">Name</th>
                         <th className="text-left">Attach To</th>
                         <th className="w-20 text-right">Action</th>
@@ -71,6 +77,9 @@ const ShapesPanel: React.FC<ShapesPanelProps> = ({
                 <tbody>
                     {svgLibrary.filter(shape => shape.type === '2D').map(shape => (
                         <tr key={shape.name}>
+                            <td className="w-16">
+                                <SVGPreview svgContent={shape.svgContent} className="w-12 h-12 mr-2" />
+                            </td>
                             <td>{shape.name}</td>
                             <td>{shape.attachTo}</td>
                             <td className="text-right">

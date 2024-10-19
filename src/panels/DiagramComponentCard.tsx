@@ -19,6 +19,7 @@ interface DiagramComponentCardProps {
     onPaste: (id: string) => void;
     onRemove2DShape: (parentId: string, shapeIndex: number) => void;
     onScrollToParent: (parentId: string) => void;
+    svgPreview: React.ReactNode;
 }
 
 const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
@@ -37,6 +38,7 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
     onPaste,
     onRemove2DShape,
     onScrollToParent,
+    svgPreview,
 }) => {
     return (
         <div
@@ -44,6 +46,7 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
             onClick={(e) => handleWithStopPropagation(e, () => onSelect(component.id))}
         >
             <div className="flex justify-between items-center mb-2">
+                {svgPreview}
                 <h3 className="text-lg font-semibold">{component.shape} (3D-{index + 1})</h3>
                 <div>
                     {isCut ? (
