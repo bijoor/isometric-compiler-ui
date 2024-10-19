@@ -23,8 +23,8 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "glass box",
-    svgFile: "glassbox.svg",
+    name: "mainframe",
+    svgFile: "mainframe3D.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
@@ -37,13 +37,6 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "glass-cylinder",
-    svgFile: "glass-cylinder3D.svg",
-    type: "3D",
-    attachTo: "",
-    svgContent: ""
-  },
-  {
     name: "laptop",
     svgFile: "laptop3D.svg",
     type: "3D",
@@ -51,15 +44,22 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "funnel",
-    svgFile: "funnel3D.svg",
+    name: "glass box",
+    svgFile: "glassbox.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
   },
   {
-    name: "mainframe",
-    svgFile: "mainframe3D.svg",
+    name: "glass cylinder",
+    svgFile: "glass-cylinder3D.svg",
+    type: "3D",
+    attachTo: "",
+    svgContent: ""
+  },
+  {
+    name: "funnel",
+    svgFile: "funnel3D.svg",
     type: "3D",
     attachTo: "",
     svgContent: ""
@@ -93,14 +93,14 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "ui-on-laptop",
+    name: "ui on screen",
     svgFile: "ui-on-screen2D.svg",
     type: "2D",
     attachTo: "screen",
     svgContent: ""
   },
   {
-    name: "ai-model",
+    name: "ai model",
     svgFile: "ai-model2D.svg",
     type: "2D",
     attachTo: "top",
@@ -114,7 +114,7 @@ export const defaultShapesLibrary: Shape[] = [
     svgContent: ""
   },
   {
-    name: "query-vectors",
+    name: "query vectors",
     svgFile: "query-vectors2D.svg",
     type: "2D",
     attachTo: "top",
