@@ -199,6 +199,10 @@ export const paste3DShape = (
     let nonCutComponents: DiagramComponent[] = [];
 
     console.log(`pasting object ${id} on ${targetId} at ${newPosition} ${attachmentPoint}`);
+    
+    if (attachmentPoint === 'none') {
+        attachmentPoint = null;
+    }
 
     // Separate cut and non-cut components
     diagramComponents.forEach(component => {
