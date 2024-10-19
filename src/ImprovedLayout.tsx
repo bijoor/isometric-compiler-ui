@@ -262,6 +262,7 @@ const ImprovedLayout: React.FC<ImprovedLayoutProps> = ({
                         svgContent={composedSVG}
                         selected3DShape={selected3DShape}
                         diagramComponents={diagramComponents}
+                        copiedComponents={copiedComponents}
                         onSelect3DShape={handleSelect3DShape}
                         onGetBoundingBox={onGetBoundingBox}
                         canvasSize={canvasSize}

@@ -44,51 +44,55 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
             onClick={(e) => handleWithStopPropagation(e, () => onSelect(component.id))}
         >
             <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-semibold">{component.shape} (3D-{index+1})</h3>
+                <h3 className="text-lg font-semibold">{component.shape} (3D-{index + 1})</h3>
                 <div>
                     {isCut ? (
                         isFirst && (
-                        <>
-                            <Button onClick={(e) => handleWithStopPropagation(e, () => onCancelCut(component.id))} className="mr-2">
-                                Cancel
-                            </Button>
-                            <Button onClick={(e) => handleWithStopPropagation(e, () => onPaste(component.id))} className="mr-2">
-                                Paste
-                            </Button>
-                            <Button onClick={(e) => handleWithStopPropagation(e, () => onRemove(component.id))}>
-                                Remove
-                            </Button>
-                        </>
+                            <>
+                                <Button onClick={(e) => handleWithStopPropagation(e, () => onCancelCut(component.id))} className="mr-2">
+                                    Cancel
+                                </Button>
+                                <Button onClick={(e) => handleWithStopPropagation(e, () => onPaste(component.id))} className="mr-2">
+                                    Paste
+                                </Button>
+                                <Button onClick={(e) => handleWithStopPropagation(e, () => onRemove(component.id))}>
+                                    Remove
+                                </Button>
+                            </>
                         )
                     ) : (
                         isCopied ? (
                             isFirst && (
-                            <>
-                                <Button onClick={(e) => handleWithStopPropagation(e, () => onPaste(component.id))} className="mr-2">
-                                    Paste
-                                </Button>
-                            </>
+                                <>
+                                    <Button onClick={(e) => handleWithStopPropagation(e, () => onPaste(component.id))} className="mr-2">
+                                        Paste
+                                    </Button>
+                                    <Button onClick={(e) => handleWithStopPropagation(e, () => onCancelCut(component.id))} className="mr-2">
+                                        Cancel
+                                    </Button>
+
+                                </>
                             )
                         ) : (
-                        <>
-                            <Button 
-                                onClick={(e) => handleWithStopPropagation(e, () => onCopy(component.id))} 
-                                className="mr-2"
-                            >
-                                Copy
-                            </Button>
-                            <Button 
-                                onClick={(e) => handleWithStopPropagation(e, () => onCut(component.id))} 
-                                className="mr-2"
-                                disabled={isFirst}
-                            >
-                                Cut
-                            </Button>
-                            <Button onClick={(e) => handleWithStopPropagation(e, () => onRemove(component.id))}>
-                                Remove
-                            </Button>
-                        </>
-                    ))}
+                            <>
+                                <Button
+                                    onClick={(e) => handleWithStopPropagation(e, () => onCopy(component.id))}
+                                    className="mr-2"
+                                >
+                                    Copy
+                                </Button>
+                                <Button
+                                    onClick={(e) => handleWithStopPropagation(e, () => onCut(component.id))}
+                                    className="mr-2"
+                                    disabled={isFirst}
+                                >
+                                    Cut
+                                </Button>
+                                <Button onClick={(e) => handleWithStopPropagation(e, () => onRemove(component.id))}>
+                                    Remove
+                                </Button>
+                            </>
+                        ))}
                 </div>
             </div>
             {!isCut && !isCopied && (
@@ -104,7 +108,7 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                                         className="text-blue-400 hover:underline"
                                         onClick={(e) => handleWithStopPropagation(e, () => onScrollToParent(component.relativeToId!))}
                                     >
-                                        3D-{parentIndex+1}
+                                        3D-{parentIndex + 1}
                                     </button>
                                 ) : 'None'
                             }
@@ -117,8 +121,8 @@ const DiagramComponentCard: React.FC<DiagramComponentCardProps> = ({
                                 {component.attached2DShapes.map((shape, i) => (
                                     <li key={i} className="flex justify-between items-center bg-gray-700 p-2 rounded">
                                         <span>{shape.name} (attached to {shape.attachedTo})</span>
-                                        <Button 
-                                            className="ml-2 text-xs" 
+                                        <Button
+                                            className="ml-2 text-xs"
                                             onClick={(e) => handleWithStopPropagation(e, () => onRemove2DShape(component.id, i))}
                                         >
                                             Remove

@@ -132,7 +132,10 @@ const App: React.FC = () => {
 
     const handleCancelCut3DShape = useCallback((id: string | null) => {
         setDiagramComponents(prev => diagramComponentsLib.cancelCut(prev, id));
-    }, []);
+        if (copiedComponents && copiedComponents.length>0 ) {
+            setCopiedComponents(null);
+        }
+    }, [copiedComponents, setCopiedComponents]);
 
     const handleCopy3DShape = useCallback((id: string | null) => {
         if (!id) {

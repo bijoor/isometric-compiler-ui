@@ -8,6 +8,7 @@ interface SVGDisplayProps {
     svgContent: string;
     selected3DShape: string | null;
     diagramComponents: DiagramComponent[];
+    copiedComponents: DiagramComponent[];
     onSelect3DShape: (id: string | null) => void;
     onGetBoundingBox: (boundingBox: { x: number, y: number, width: number, height: number } | null) => void;
     canvasSize: { width: number; height: number };
@@ -19,6 +20,7 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
     svgContent,
     selected3DShape,
     diagramComponents,
+    copiedComponents,
     onSelect3DShape,
     onGetBoundingBox,
     canvasSize,
@@ -92,9 +94,9 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
         if (svgRef.current) {
             const svg = svgRef.current;
 
-            // Remove highlight from all elements
-            svg.querySelectorAll('.highlighted-shape').forEach(el => {
-                el.classList.remove('highlighted-shape');
+            // Remove all highlights
+            svg.querySelectorAll('.highlighted-shape, .copied-shape').forEach(el => {
+                el.classList.remove('highlighted-shape', 'copied-shape');
             });
 
             // Add highlight to the selected element if there is one
@@ -104,6 +106,14 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
                     selectedElement.classList.add('highlighted-shape');
                 }
             }
+
+            // Add highlight to copied elements
+            copiedComponents.forEach(component => {
+                const copiedElement = svg.getElementById(component.id);
+                if (copiedElement) {
+                    copiedElement.classList.add('copied-shape');
+                }
+            });
 
             // Apply reduced opacity to cut objects
             diagramComponents.forEach(component => {
@@ -175,7 +185,7 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
             const component = diagramComponents.find(c => c.id === shapeId);
 
             onSelect3DShape(shapeId);
-            
+
             if (component) {
                 const svgRect = shape3D.getBoundingClientRect();
                 if (svgRect) {
@@ -183,7 +193,7 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
                     const clickY = (e.clientY - svgRect.top) / scale;
                     console.log(` click : ${clickX},${clickY}`);
                     console.log(svgRect);
-                    
+
                     const { position, attachmentPoint } = getClosestAttachmentPoint(clickX, clickY, component);
                     setSelectedPosition(position);
                     setSelectedAttachmentPoint(attachmentPoint);
@@ -223,11 +233,15 @@ const SVGDisplay: React.FC<SVGDisplayProps> = ({
             </div>
             <style>
                 {`
-          .highlighted-shape {
-            outline: 2px dashed #007bff;
-            outline-offset: 2px;
-          }
-        `}
+              .highlighted-shape {
+                outline: 2px dashed #007bff;
+                outline-offset: 2px;
+                }
+            .copied-shape {
+                outline: 2px dashed #10b981; /* green */
+                outline-offset: 2px;
+                }
+            `}
             </style>
         </div>
     );

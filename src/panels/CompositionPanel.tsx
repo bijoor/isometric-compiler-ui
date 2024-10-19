@@ -152,7 +152,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     onCut={() => { }} // No-op for copied objects
                                     onCopy={() => { }} // No-op for copied objects
                                     onRemove={() => { }} // No-op for copied objects
-                                    onCancelCut={() => { }} // No-op for copied objects
+                                    onCancelCut={onCancelCut3DShape}
                                     onPaste={onPaste3DShape}
                                     onRemove2DShape={() => { }} // No-op for copied objects
                                     onScrollToParent={handleScrollToParent}
